@@ -1,9 +1,9 @@
 package ElevatorStructure {
     private import ScalarValues::*;
 
-    // =====================
+    // =======================
     // Enumerations & Types
-    // =====================
+    // =======================
     enum def DoorStatus {
         enum OPEN;
         enum CLOSED;
@@ -17,9 +17,27 @@ package ElevatorStructure {
         enum IDLE;
     }
 
-    // ===========================
-    // Subsystem Part Definitions
-    // ===========================
+    // ===================
+    // Item Definitions
+    // ===================
+    item def FloorRequest;
+    item def PositionData;
+    item def DoorCommand;
+    item def AlarmMessage;
+    item def SafetyEvent;
+
+    // =======================
+    // Interface Definitions
+    // =======================
+    interface def UserRequestInterface;
+    interface def PositionInterface;
+    interface def DoorControlInterface;
+    interface def MotorControlInterface;
+    interface def SafetyInterface;
+
+    // =======================================
+    // Subsystem Part Definitions with Ports
+    // =======================================
     part def ElevatorCar {
         attribute currentFloor : Integer;
         attribute loadWeight : Real;
@@ -29,31 +47,42 @@ package ElevatorStructure {
     part def Controller {
         attribute targetFloor : Integer;
         attribute direction : ElevatorDirection;
+        
+        port requestPort : UserRequestInterface;
+        port positionPort : PositionInterface;
+        port doorControlPort : DoorControlInterface;
+        port motorControlPort : MotorControlInterface;
+        port safetyPort : SafetyInterface;
     }
 
     part def DoorSubsystem {
         attribute doorStatus : DoorStatus;
         attribute obstructionDetected : Boolean;
+        port doorControlPort : DoorControlInterface;
     }
 
     part def MotorSubsystem {
         attribute motorSpeed : Real;
         attribute isRunning : Boolean;
+        port motorControlPort : MotorControlInterface;
     }
 
     part def PositionSubsystem {
         attribute currentFloorSensor : Integer;
         attribute rawPosition : Real;
+        port positionPort : PositionInterface;
     }
 
     part def SafetySubsystem {
         attribute overloadDetected : Boolean;
         attribute emergencyActive : Boolean;
+        port safetyPort : SafetyInterface;
     }
 
     part def UserInterfaceSubsystem {
         attribute floorButtonPressed : Integer;
         attribute alarmButtonPressed : Boolean;
+        port requestPort : UserRequestInterface;
     }
 
     part def MaintenanceSubsystem {
@@ -76,5 +105,12 @@ package ElevatorStructure {
         part safetySubsystem : SafetySubsystem;
         part uiSubsystem : UserInterfaceSubsystem;
         part maintenanceSubsystem : MaintenanceSubsystem;
+
+        // Connections (Deliverable 10)
+        connect uiSubsystem.requestPort to controller.requestPort;
+        connect positionSubsystem.positionPort to controller.positionPort;
+        connect controller.doorControlPort to doorSubsystem.doorControlPort;
+        connect controller.motorControlPort to motorSubsystem.motorControlPort;
+        connect safetySubsystem.safetyPort to controller.safetyPort;
     }
 }
