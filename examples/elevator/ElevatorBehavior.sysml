@@ -1,4 +1,6 @@
 package ElevatorBehavior {
+
+    private import ScalarValues::*;
     // define actions 
 
     action def ReceiveRequest;
@@ -11,7 +13,7 @@ package ElevatorBehavior {
     action def MoveToDestination;
     action def ExitPassenger;
 
-
+  // 2. Action Sequences
     action def ElevatorTrip {
         action receiveRequest : ReceiveRequest;
         action scheduleMovement : ScheduleMovement;
@@ -35,12 +37,31 @@ package ElevatorBehavior {
         first openDoor2 then exitPassenger;
     }
 
+  // 3. Event Definitions
+
+        item def FloorRequestReceived;
+        item def DestinationReached;
+        item def DoorFullyOpen;
+        item def DoorFullyClosed;
+        item def TimerExpired;
+        item def EmergencyDetected;
+        item def EmergencyCleared;
+        item def OverloadDetected;
+        item def OverloadCleared;
+        item def MaintenanceRequested;
+        item def MaintenanceCompleted;
+        item def FaultDetected;
+        item def FaultCleared;
+
 
     // =========================
     // Elevator State Machine
     // =========================
 
     state def ElevatorStates {
+
+        in attribute currentFloor : Integer;
+        in attribute targetFloor : Integer;
 
         state Idle;
         state MovingUp;
@@ -54,6 +75,148 @@ package ElevatorBehavior {
         state Emergency;
         state Maintenance;
         state Fault;
+
+    transition requestUp
+        first Idle
+        accept FloorRequestReceived
+        if targetFloor > currentFloor
+        then MovingUp;
+
+    transition requestDown
+        first Idle
+        accept FloorRequestReceived
+        if targetFloor < currentFloor
+        then MovingDown;
+
+
+    // Movement -> Door Opening
+
+    transition reachedFromAbove
+        first MovingUp
+        accept DestinationReached
+        then DoorOpening;
+
+    transition reachedFromBelow
+        first MovingDown
+        accept DestinationReached
+        then DoorOpening;
+
+    // Door Operations
+
+    transition doorOpened
+        first DoorOpening
+        accept DoorFullyOpen
+        then DoorOpen;
+
+    transition closeAfterTimer
+        first DoorOpen
+        accept TimerExpired
+        then DoorClosing;
+
+    transition doorClosed
+        first DoorClosing
+        accept DoorFullyClosed
+        then Idle;   
+
+    // Emergency Handling
+
+    transition emergencyFromIdle
+        first Idle
+        accept EmergencyDetected
+        then Emergency;
+
+    transition emergencyFromMovingUp
+        first MovingUp
+        accept EmergencyDetected
+        then Emergency;
+
+    transition emergencyFromMovingDown
+        first MovingDown
+        accept EmergencyDetected
+        then Emergency;
+
+    transition clearEmergency
+        first Emergency
+        accept EmergencyCleared
+        then Idle;  
+         
+    // Emergency from the remaining states
+
+    transition emergencyFromDoorOpening
+        first DoorOpening
+        accept EmergencyDetected
+        then Emergency;
+
+    transition emergencyFromDoorOpen
+        first DoorOpen
+        accept EmergencyDetected
+        then Emergency;
+
+    transition emergencyFromDoorClosing
+        first DoorClosing
+        accept EmergencyDetected
+        then Emergency;
+
+    transition emergencyFromOverloaded
+        first Overloaded
+        accept EmergencyDetected
+        then Emergency;
+
+    transition emergencyFromMaintenance
+        first Maintenance
+        accept EmergencyDetected
+        then Emergency;
+
+    transition emergencyFromFault
+        first Fault
+        accept EmergencyDetected
+        then Emergency;
+
+    // Overload Handling
+    transition detectOverload
+        first Idle
+        accept OverloadDetected
+        then Overloaded;
+    
+    transition clearOverload
+        first Overloaded
+        accept OverloadCleared
+        then Idle;  
+   
+    // Maintenance mode
+
+    transition enterMaintenance
+        first Idle
+        accept MaintenanceRequested
+        then Maintenance;
+
+    transition exitMaintenance
+        first Maintenance
+        accept MaintenanceCompleted
+        then Idle; 
+        
+        
+        // Fault handling
+
+    transition detectFault
+        first Idle
+        accept FaultDetected
+        then Fault;
+
+    transition faultWhileMovingUp
+        first MovingUp
+        accept FaultDetected
+        then Fault;
+
+    transition faultWhileMovingDown
+        first MovingDown
+        accept FaultDetected
+        then Fault;
+
+    transition clearFault
+        first Fault
+        accept FaultCleared
+        then Idle;
     }
 
 
