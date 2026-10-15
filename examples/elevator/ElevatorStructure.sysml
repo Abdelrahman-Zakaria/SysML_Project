@@ -29,11 +29,26 @@ package ElevatorStructure {
     // =======================
     // Interface Definitions
     // =======================
-    interface def UserRequestInterface;
-    interface def PositionInterface;
-    interface def DoorControlInterface;
-    interface def MotorControlInterface;
-    interface def SafetyInterface;
+    interface def UserRequestInterface {
+        end source;
+        end target;
+    }
+    interface def PositionInterface {
+        end source;
+        end target;
+    }
+    interface def DoorControlInterface {
+        end source;
+        end target;
+    }
+    interface def MotorControlInterface {
+        end source;
+        end target;
+    }
+    interface def SafetyInterface {
+        end source;
+        end target;
+    }
 
     // =======================================
     // Subsystem Part Definitions with Ports
