@@ -2,29 +2,31 @@ package ElevatorAllocations {
     private import ElevatorStructure::*;
     private import ElevatorBehavior::*;
 
-    part allocationModel {
-        // Behavioral Usages
-        action scheduleMovement : ElevatorBehavior::ScheduleMovement;
-        action moveElevator : ElevatorBehavior::MoveElevator;
-        action openDoor : ElevatorBehavior::OpenDoor;
-        action arriveAtFloor : ElevatorBehavior::ArriveAtFloor;
-        action receiveRequest : ElevatorBehavior::ReceiveRequest;
-        action detectOverload : ElevatorBehavior::DetectOverload;
+    // ==========================================
+    // Allocation of Behavioral Actions to Structural Parts
+    // ==========================================
+    
+    // User Interface Actions
+    allocate ReceiveRequest to SmartElevatorSystem::uiSubsystem;
+    allocate SelectDestination to SmartElevatorSystem::uiSubsystem;
 
-        // Structural Usages
-        part controller : ElevatorStructure::Controller;
-        part motorSubsystem : ElevatorStructure::MotorSubsystem;
-        part doorSubsystem : ElevatorStructure::DoorSubsystem;
-        part positionSubsystem : ElevatorStructure::PositionSubsystem;
-        part userInterfaceSubsystem : ElevatorStructure::UserInterfaceSubsystem;
-        part safetySubsystem : ElevatorStructure::SafetySubsystem;
+    // Control Subsystem Actions
+    allocate ScheduleMovement to SmartElevatorSystem::controller;
 
-        // Explicit Instance Allocations
-        allocate scheduleMovement to controller;
-        allocate moveElevator to motorSubsystem;
-        allocate openDoor to doorSubsystem;
-        allocate arriveAtFloor to positionSubsystem;
-        allocate receiveRequest to userInterfaceSubsystem;
-        allocate detectOverload to safetySubsystem;
-    }
+    // Motor Subsystem Actions
+    allocate MoveElevator to SmartElevatorSystem::motorSubsystem;
+    allocate MoveToDestination to SmartElevatorSystem::motorSubsystem;
+
+    // Position Subsystem Actions
+    allocate ArriveAtFloor to SmartElevatorSystem::positionSubsystem;
+
+    // Door Subsystem Actions
+    allocate OpenDoor to SmartElevatorSystem::doorSubsystem;
+
+    // Elevator Cabin / Passenger Operations
+    allocate BoardPassenger to SmartElevatorSystem::elevatorCar;
+    allocate ExitPassenger to SmartElevatorSystem::elevatorCar;
+
+    // Safety Subsystem Actions
+    allocate DetectOverload to SmartElevatorSystem::safetySubsystem;
 }
