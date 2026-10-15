@@ -12,6 +12,7 @@ package ElevatorBehavior {
     action def SelectDestination;
     action def MoveToDestination;
     action def ExitPassenger;
+    action def DetectOverload;
 
   // 2. Action Sequences
     action def ElevatorTrip {
