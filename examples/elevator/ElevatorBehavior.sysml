@@ -13,6 +13,8 @@ package ElevatorBehavior {
     action def MoveToDestination;
     action def ExitPassenger;
     action def DetectOverload;
+    action def RunDiagnostics;
+    action def EnterMaintenanceMode;
 
   // 2. Action Sequences
     action def ElevatorTrip {
