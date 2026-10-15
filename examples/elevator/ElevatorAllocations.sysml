@@ -29,4 +29,8 @@ package ElevatorAllocations {
 
     // Safety Subsystem Actions
     allocate DetectOverload to SmartElevatorSystem::safetySubsystem;
+
+    // Maintenance Subsystem Actions
+    allocate RunDiagnostics to SmartElevatorSystem::maintenanceSubsystem;
+    allocate EnterMaintenanceMode to SmartElevatorSystem::maintenanceSubsystem;
 }
