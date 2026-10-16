@@ -91,4 +91,43 @@ package ElevatorRequirements {
         doc /* The system shall enter maintenance mode within 1.0 second of a valid technician request. */
     }
 
+    // ==========================================
+    // Requirement Hierarchy and Usages
+    // ==========================================
+    requirement def ElevatorSystemRequirements {
+        doc /* Top-level system requirement encompassing all functional, safety, and performance requirements. */
+
+        // Functional Requirement Usages
+        requirement fr01 : AcceptFloorRequests;
+        requirement fr02 : AcceptDestinationRequests;
+        requirement fr03 : TransportPassengers;
+        requirement fr04 : OpenDoorsAtDestination;
+        requirement fr05 : CloseDoorsBeforeMovement;
+        requirement fr06 : DisplayCurrentFloor;
+        requirement fr07 : ProcessEmergencyRequests;
+        requirement fr08 : DetectOverloadConditions;
+        requirement fr09 : PreventMotionOverload;
+        requirement fr10 : PreventMotionDoorsOpen;
+        requirement fr11 : MaintainCabinLighting;
+        requirement fr12 : OperateVentilation;
+        requirement fr13 : SupportRemoteDiagnostics;
+        requirement fr14 : OptimizeWaitTime;
+
+        // Safety Requirement Usages
+        requirement sr01 : DetectDoorObstruction;
+        requirement sr02 : StopDoorClosingOnObstruction;
+        requirement sr03 : StopElevatorCriticalFault;
+        requirement sr04 : EnterEmergencyMode;
+        requirement sr05 : UtilizeBackupPower;
+        requirement sr06 : ProvideIntercom;
+        requirement sr07 : ExecuteFireRecall;
+
+        // Performance Requirement Usages
+        requirement pr01 : MaxTravelTime;
+        requirement pr02 : RequestProcessingLatency;
+        requirement pr03 : SupportMaximumLoad;
+        requirement pr04 : DoorOperationSpeed;
+        requirement pr05 : MaintenanceResponseTime;
+    }
+
 }
