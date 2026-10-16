@@ -3,34 +3,50 @@ package ElevatorAllocations {
     private import ElevatorBehavior::*;
 
     // ==========================================
-    // Allocation of Behavioral Actions to Structural Parts
+    // 1. Declare Action Usages (Features)
+    // ==========================================
+    action receiveRequest : ReceiveRequest;
+    action selectDestination : SelectDestination;
+    action scheduleMovement : ScheduleMovement;
+    action moveElevator : MoveElevator;
+    action moveToDestination : MoveToDestination;
+    action arriveAtFloor : ArriveAtFloor;
+    action openDoor : OpenDoor;
+    action boardPassenger : BoardPassenger;
+    action exitPassenger : ExitPassenger;
+    action detectOverload : DetectOverload;
+    action runDiagnostics : RunDiagnostics;
+    action enterMaintenanceMode : EnterMaintenanceMode;
+
+    // ==========================================
+    // 2. Allocate Action Features to Part Features
     // ==========================================
     
     // User Interface Actions
-    allocate ReceiveRequest to SmartElevatorSystem::uiSubsystem;
-    allocate SelectDestination to SmartElevatorSystem::uiSubsystem;
+    allocate receiveRequest to SmartElevatorSystem::uiSubsystem;
+    allocate selectDestination to SmartElevatorSystem::uiSubsystem;
 
     // Control Subsystem Actions
-    allocate ScheduleMovement to SmartElevatorSystem::controller;
+    allocate scheduleMovement to SmartElevatorSystem::controller;
 
     // Motor Subsystem Actions
-    allocate MoveElevator to SmartElevatorSystem::motorSubsystem;
-    allocate MoveToDestination to SmartElevatorSystem::motorSubsystem;
+    allocate moveElevator to SmartElevatorSystem::motorSubsystem;
+    allocate moveToDestination to SmartElevatorSystem::motorSubsystem;
 
     // Position Subsystem Actions
-    allocate ArriveAtFloor to SmartElevatorSystem::positionSubsystem;
+    allocate arriveAtFloor to SmartElevatorSystem::positionSubsystem;
 
     // Door Subsystem Actions
-    allocate OpenDoor to SmartElevatorSystem::doorSubsystem;
+    allocate openDoor to SmartElevatorSystem::doorSubsystem;
 
     // Elevator Cabin / Passenger Operations
-    allocate BoardPassenger to SmartElevatorSystem::elevatorCar;
-    allocate ExitPassenger to SmartElevatorSystem::elevatorCar;
+    allocate boardPassenger to SmartElevatorSystem::elevatorCar;
+    allocate exitPassenger to SmartElevatorSystem::elevatorCar;
 
     // Safety Subsystem Actions
-    allocate DetectOverload to SmartElevatorSystem::safetySubsystem;
+    allocate detectOverload to SmartElevatorSystem::safetySubsystem;
 
     // Maintenance Subsystem Actions
-    allocate RunDiagnostics to SmartElevatorSystem::maintenanceSubsystem;
-    allocate EnterMaintenanceMode to SmartElevatorSystem::maintenanceSubsystem;
+    allocate runDiagnostics to SmartElevatorSystem::maintenanceSubsystem;
+    allocate enterMaintenanceMode to SmartElevatorSystem::maintenanceSubsystem;
 }
