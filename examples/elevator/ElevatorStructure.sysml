@@ -20,11 +20,38 @@ package ElevatorStructure {
     // ===================
     // Item Definitions
     // ===================
-    item def FloorRequest;
-    item def PositionData;
-    item def DoorCommand;
-    item def AlarmMessage;
-    item def SafetyEvent;
+    item def FloorRequest {
+        attribute targetFloor : Integer;
+        attribute directionRequest : ElevatorDirection;
+    }
+    
+    item def PositionData {
+        attribute currentFloor : Integer;
+        attribute exactPosition : Real;
+    }
+    
+    item def DoorCommand {
+        attribute commandedStatus : DoorStatus;
+    }
+    
+    item def AlarmMessage {
+        attribute isAlarmTriggered : Boolean;
+    }
+    
+    item def SafetyEvent {
+        attribute isOverloaded : Boolean;
+        attribute emergencyActive : Boolean;
+    }
+
+    item def MotorCommand {
+        attribute targetSpeed : Real;
+        attribute targetDirection : ElevatorDirection;
+    }
+
+    item def MaintenanceLog {
+        attribute isMaintenanceMode : Boolean;
+        attribute diagnosticCode : Integer;
+    }
 
     // =======================
     // Interface Definitions
@@ -127,12 +154,29 @@ package ElevatorStructure {
         part uiSubsystem : UserInterfaceSubsystem;
         part maintenanceSubsystem : MaintenanceSubsystem;
 
-        // Connections (Deliverable 10)
-        connect uiSubsystem.requestPort to controller.requestPort;
-        connect positionSubsystem.positionPort to controller.positionPort;
-        connect controller.doorControlPort to doorSubsystem.doorControlPort;
-        connect controller.motorControlPort to motorSubsystem.motorControlPort;
-        connect safetySubsystem.safetyPort to controller.safetyPort;
-        connect maintenanceSubsystem.maintenancePort to controller.maintenancePort;
+        // Connections with Item Flows (Deliverable 10)
+        connect uiSubsystem.requestPort to controller.requestPort {
+            flow of FloorRequest;
+        }
+        
+        connect positionSubsystem.positionPort to controller.positionPort {
+            flow of PositionData;
+        }
+        
+        connect controller.doorControlPort to doorSubsystem.doorControlPort {
+            flow of DoorCommand;
+        }
+        
+        connect controller.motorControlPort to motorSubsystem.motorControlPort {
+            flow of MotorCommand;
+        }
+        
+        connect safetySubsystem.safetyPort to controller.safetyPort {
+            flow of SafetyEvent;
+        }
+        
+        connect maintenanceSubsystem.maintenancePort to controller.maintenancePort {
+            flow of MaintenanceLog;
+        }
     }
 }
