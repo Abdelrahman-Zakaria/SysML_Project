@@ -29,11 +29,30 @@ package ElevatorStructure {
     // =======================
     // Interface Definitions
     // =======================
-    interface def UserRequestInterface;
-    interface def PositionInterface;
-    interface def DoorControlInterface;
-    interface def MotorControlInterface;
-    interface def SafetyInterface;
+    interface def UserRequestInterface {
+        end source;
+        end target;
+    }
+    interface def PositionInterface {
+        end source;
+        end target;
+    }
+    interface def DoorControlInterface {
+        end source;
+        end target;
+    }
+    interface def MotorControlInterface {
+        end source;
+        end target;
+    }
+    interface def SafetyInterface {
+        end source;
+        end target;
+    }
+    interface def MaintenanceInterface { 
+         end source; 
+         end target; 
+    }
 
     // =======================================
     // Subsystem Part Definitions with Ports
@@ -53,6 +72,7 @@ package ElevatorStructure {
         port doorControlPort : DoorControlInterface;
         port motorControlPort : MotorControlInterface;
         port safetyPort : SafetyInterface;
+        port maintenancePort : MaintenanceInterface;
     }
 
     part def DoorSubsystem {
@@ -88,6 +108,7 @@ package ElevatorStructure {
     part def MaintenanceSubsystem {
         attribute inMaintenanceMode : Boolean;
         attribute lastServiceDate : String;
+        port maintenancePort : MaintenanceInterface;
     }
 
     // =======================================
@@ -112,5 +133,6 @@ package ElevatorStructure {
         connect controller.doorControlPort to doorSubsystem.doorControlPort;
         connect controller.motorControlPort to motorSubsystem.motorControlPort;
         connect safetySubsystem.safetyPort to controller.safetyPort;
+        connect maintenanceSubsystem.maintenancePort to controller.maintenancePort;
     }
 }
