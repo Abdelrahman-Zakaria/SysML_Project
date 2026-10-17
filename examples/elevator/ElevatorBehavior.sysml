@@ -66,6 +66,12 @@ package ElevatorBehavior {
         in attribute currentFloor : Integer;
         in attribute targetFloor : Integer;
 
+        entry action initializeElevator {
+            // Initialize the elevator state
+             currentFloor = 0;
+             targetFloor = 0;
+        }
+
         state Idle;
         state MovingUp;
         state MovingDown;
@@ -78,6 +84,10 @@ package ElevatorBehavior {
         state Emergency;
         state Maintenance;
         state Fault;
+
+    transition initTrans
+            first initializeElevator
+            then Idle;
 
     transition requestUp
         first Idle
