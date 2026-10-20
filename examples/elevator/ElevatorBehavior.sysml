@@ -15,6 +15,8 @@ package ElevatorBehavior {
     action def DetectOverload;
     action def RunDiagnostics;
     action def EnterMaintenanceMode;
+    action def StartAudio;
+    action def StopAudio;
 
   // 2. Action Sequences
     action def ElevatorTrip {

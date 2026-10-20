@@ -43,6 +43,10 @@ package ElevatorTraceability {
         doc /* The controller shall not command cabin movement while an overload condition is detected. */
     }
 
+    requirement def <'FR-15a'> AudioMotionInterlock {
+        doc /* The audio playback shall halt within 100 ms of the motor drive reaching zero speed or transitioning to the DoorOpening state. */
+    }
+
     requirement def <'SR-01a'> DoorSensorSensitivity {
         doc /* Object detection sensors shall trigger on obstacles larger than 10mm in thickness. */
     }
@@ -85,6 +89,7 @@ package ElevatorTraceability {
         requirement req_FR07a : EmergencyButtonHoldTime;
         requirement req_FR08a : OverloadThresholdCheck;
         requirement req_FR09a : OverloadMotionInterlock;
+        requirement req_FR15a : AudioMotionInterlock;
 
         requirement req_SR01a : DoorSensorSensitivity;
         requirement req_SR02a : DoorReversalTime;
@@ -139,6 +144,10 @@ package ElevatorTraceability {
         end #original origReq : PreventMotionOverload;
         end #derive derivedReq : OverloadMotionInterlock;
     }
+     #derivation connection def FR15_to_FR15a {
+        end #original origReq : PlayAudioDuringMotion;
+        end #derive derivedReq : AudioMotionInterlock;
+    }
     #derivation connection def SR01_to_SR01a {
         end #original origReq : DetectDoorObstruction;
         end #derive derivedReq : DoorSensorSensitivity;
@@ -167,6 +176,7 @@ package ElevatorTraceability {
         end #original origReq : SupportMaximumLoad;
         end #derive derivedReq : RatedCabinCapacity;
     }
+   
 
     // ==========================================
     // Derivation Connection Usages
@@ -237,6 +247,10 @@ package ElevatorTraceability {
         #derivation connection trace_PR03_to_PR03a : PR03_to_PR03a {
             end origReq ::> req_supportMaximumLoad;
             end derivedReq ::> systemRequirementTraceability.req_PR03a;
+        }
+        #derivation connection trace_FR15_to_FR15a : FR15_to_FR15a {
+            end origReq ::> req_playAudioDuringMotion;
+            end derivedReq ::> systemRequirementTraceability.req_FR15a;
         }
     }
 }

@@ -19,6 +19,7 @@ package ElevatorArchitecture {
     requirement req_operateVentilation : OperateVentilation;
     requirement req_supportRemoteDiagnostics : SupportRemoteDiagnostics;
     requirement req_optimizeWaitTime : OptimizeWaitTime;
+    requirement req_playAudioDuringMotion : PlayAudioDuringMotion;
 
     // ==========================================
     // Safety Requirement Usages (SR-01 to SR-07)
@@ -64,6 +65,8 @@ package ElevatorArchitecture {
     satisfy req_operateVentilation by SmartElevatorSystem::elevatorCar;
     satisfy req_supportRemoteDiagnostics by SmartElevatorSystem::maintenanceSubsystem;
     satisfy req_optimizeWaitTime by SmartElevatorSystem::controller;
+    satisfy req_playAudioDuringMotion by SmartElevatorSystem::soundSubsystem;
+    satisfy req_playAudioDuringMotion by SmartElevatorSystem::controller;
 
     // Safety Satisfactions
 

@@ -17,6 +17,8 @@ package ElevatorAllocations {
     action detectOverload : DetectOverload;
     action runDiagnostics : RunDiagnostics;
     action enterMaintenanceMode : EnterMaintenanceMode;
+    action startAudio : StartAudio;
+    action stopAudio : StopAudio;
 
     // ==========================================
     // 2. Allocate Action Features to Part Features
@@ -49,4 +51,7 @@ package ElevatorAllocations {
     // Maintenance Subsystem Actions
     allocate runDiagnostics to SmartElevatorSystem::maintenanceSubsystem;
     allocate enterMaintenanceMode to SmartElevatorSystem::maintenanceSubsystem;
+
+    allocate startAudio to SmartElevatorSystem::soundSubsystem;
+    allocate stopAudio to SmartElevatorSystem::soundSubsystem;
 }

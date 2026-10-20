@@ -46,6 +46,9 @@ package ElevatorRequirements {
     requirement def <'FR-14'> OptimizeWaitTime {
         doc /* The system shall optimize passenger waiting time based on request queues. */
     }
+    requirement def <'FR-15'> PlayAudioDuringMotion {
+        doc /* The system shall play background audio exclusively while the elevator cabin is in motion, and mute when stationary. */
+    }
 
     // ==========================================
     // Safety Requirements (SR)
@@ -112,6 +115,7 @@ package ElevatorRequirements {
         requirement fr12 : OperateVentilation;
         requirement fr13 : SupportRemoteDiagnostics;
         requirement fr14 : OptimizeWaitTime;
+        requirement fr15 : PlayAudioDuringMotion;
 
         // Safety Requirement Usages
         requirement sr01 : DetectDoorObstruction;

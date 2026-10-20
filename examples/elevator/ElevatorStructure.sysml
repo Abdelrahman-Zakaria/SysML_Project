@@ -53,6 +53,11 @@ package ElevatorStructure {
         attribute diagnosticCode : Integer;
     }
 
+    item def AudioCommand {
+        attribute playMusic : Boolean;
+        attribute announcementId : Integer;
+    }
+
     // =======================
     // Interface Definitions
     // =======================
@@ -80,6 +85,10 @@ package ElevatorStructure {
          end source; 
          end target; 
     }
+    interface def AudioControlInterface {
+        end source;
+        end target;
+    }
 
     // =======================================
     // Subsystem Part Definitions with Ports
@@ -100,6 +109,7 @@ package ElevatorStructure {
         port motorControlPort : MotorControlInterface;
         port safetyPort : SafetyInterface;
         port maintenancePort : MaintenanceInterface;
+        port audioPort : AudioControlInterface;
     }
 
     part def DoorSubsystem {
@@ -138,6 +148,12 @@ package ElevatorStructure {
         port maintenancePort : MaintenanceInterface;
     }
 
+    part def SoundSubsystem {
+        attribute volumeLevel : Real;
+        attribute isPlaying : Boolean;
+        port audioPort : AudioControlInterface;
+    }
+
     // =======================================
     // System Composition (Top-Level System)
     // =======================================
@@ -153,6 +169,7 @@ package ElevatorStructure {
         part safetySubsystem : SafetySubsystem;
         part uiSubsystem : UserInterfaceSubsystem;
         part maintenanceSubsystem : MaintenanceSubsystem;
+        part soundSubsystem : SoundSubsystem;
 
         // Connections with Item Flows (Deliverable 10)
         connect uiSubsystem.requestPort to controller.requestPort {
@@ -177,6 +194,10 @@ package ElevatorStructure {
         
         connect maintenanceSubsystem.maintenancePort to controller.maintenancePort {
             flow of MaintenanceLog;
+        }
+
+        connect controller.audioPort to soundSubsystem.audioPort {
+            flow of AudioCommand; 
         }
     }
 }
