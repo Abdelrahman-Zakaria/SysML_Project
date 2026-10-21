@@ -4,8 +4,7 @@ package ElevatorVerification {
     private import ElevatorArchitecture::*;
     
     // ==========================================
-    // 1. Functional Verifications (FR-01 to FR-14)
-    // ==========================================
+    // 1. Functional Verifications (FR-01 to FR-15)    // ==========================================
 
     verification def VerifyAcceptFloorRequests {
         subject uiSubsystem : UserInterfaceSubsystem;
@@ -116,6 +115,13 @@ package ElevatorVerification {
         objective {
             doc /* Apply a set of queued requests and confirm the controller's scheduling gives a lower average wait time than serving them strictly in arrival order. Average wait time is computed as in AverageWaitTimeConstraint. */
             verify req_optimizeWaitTime;
+        }
+    }
+    verification def VerifyPlayAudioDuringMotion {
+        subject soundSubsystem : SoundSubsystem;
+        objective {
+            doc /* Move the cabin between floors and confirm audio plays only while the cabin is moving; confirm it is muted when the cabin is stationary and halts when the doors begin opening. */
+            verify req_playAudioDuringMotion;
         }
     }
 

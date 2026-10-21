@@ -3,8 +3,7 @@ package ElevatorArchitecture {
     private import ElevatorStructure::*;
 
      // ==========================================
-    // Functional Requirement Usages (FR-01 to FR-14)
-    // ==========================================
+// Functional Requirement Usages (FR-01 to FR-15)    // ==========================================
     requirement req_acceptFloorRequests : AcceptFloorRequests;
     requirement req_acceptDestinationRequests : AcceptDestinationRequests;
     requirement req_transportPassengers : TransportPassengers;
