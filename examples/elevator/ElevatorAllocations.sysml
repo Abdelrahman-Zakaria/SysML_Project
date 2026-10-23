@@ -19,6 +19,9 @@ package ElevatorAllocations {
     action enterMaintenanceMode : EnterMaintenanceMode;
     action startAudio : StartAudio;
     action stopAudio : StopAudio;
+    action triggerOverloadAlarm : TriggerOverloadAlarm;
+    action inhibitMotion : InhibitMotion;
+
 
     // ==========================================
     // 2. Allocate Action Features to Part Features
@@ -45,8 +48,11 @@ package ElevatorAllocations {
     allocate boardPassenger to SmartElevatorSystem::elevatorCar;
     allocate exitPassenger to SmartElevatorSystem::elevatorCar;
 
+    
     // Safety Subsystem Actions
     allocate detectOverload to SmartElevatorSystem::safetySubsystem;
+    allocate triggerOverloadAlarm to SmartElevatorSystem::soundSubsystem;
+    allocate inhibitMotion to SmartElevatorSystem::controller;
 
     // Maintenance Subsystem Actions
     allocate runDiagnostics to SmartElevatorSystem::maintenanceSubsystem;

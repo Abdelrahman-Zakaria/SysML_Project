@@ -13,6 +13,8 @@ package ElevatorBehavior {
     action def MoveToDestination;
     action def ExitPassenger;
     action def DetectOverload;
+    action def TriggerOverloadAlarm;
+    action def InhibitMotion;
     action def RunDiagnostics;
     action def EnterMaintenanceMode;
     action def StartAudio;
@@ -26,6 +28,7 @@ package ElevatorBehavior {
         action arriveAtFloor : ArriveAtFloor;
         action openDoor1 : OpenDoor;
         action boardPassenger : BoardPassenger;
+        action detectOverload : DetectOverload;
         action selectDestination : SelectDestination;
         action moveToDestination : MoveToDestination;
         action openDoor2 : OpenDoor;
@@ -36,7 +39,8 @@ package ElevatorBehavior {
         first moveElevator then arriveAtFloor;
         first arriveAtFloor then openDoor1;
         first openDoor1 then boardPassenger;
-        first boardPassenger then selectDestination;
+        first boardPassenger then detectOverload;
+        first detectOverload then selectDestination;
         first selectDestination then moveToDestination;
         first moveToDestination then openDoor2;
         first openDoor2 then exitPassenger;
@@ -67,11 +71,13 @@ package ElevatorBehavior {
 
         in attribute currentFloor : Integer;
         in attribute targetFloor : Integer;
+        in attribute isOverloaded : Boolean = false;
 
         entry action initializeElevator {
             // Initialize the elevator state
              currentFloor = 0;
              targetFloor = 0;
+             isOverloaded = false;
         }
 
         state Idle;
@@ -82,7 +88,10 @@ package ElevatorBehavior {
         state DoorOpen;
         state DoorClosing;
 
-        state Overloaded;
+        state Overloaded {
+            entry action soundAlarm;
+            exit action muteAlarm;
+        }
         state Emergency;
         state Maintenance;
         state Fault;
@@ -94,13 +103,13 @@ package ElevatorBehavior {
     transition requestUp
         first Idle
         accept FloorRequestReceived
-        if targetFloor > currentFloor
+        if (targetFloor > currentFloor) and (not isOverloaded)
         then MovingUp;
 
     transition requestDown
         first Idle
         accept FloorRequestReceived
-        if targetFloor < currentFloor
+        if (targetFloor < currentFloor) and (not isOverloaded)
         then MovingDown;
 
 
@@ -188,7 +197,17 @@ package ElevatorBehavior {
         then Emergency;
 
     // Overload Handling
-    transition detectOverload
+    transition overloadFromDoorOpen
+        first DoorOpen
+        accept OverloadDetected
+        then Overloaded;
+
+    transition overloadFromDoorClosing
+        first DoorClosing
+        accept OverloadDetected
+        then Overloaded;
+
+    transition overloadFromIdle
         first Idle
         accept OverloadDetected
         then Overloaded;
@@ -196,9 +215,7 @@ package ElevatorBehavior {
     transition clearOverload
         first Overloaded
         accept OverloadCleared
-        then Idle;  
-   
-    // Maintenance mode
+        then DoorOpen;
 
     transition enterMaintenance
         first Idle

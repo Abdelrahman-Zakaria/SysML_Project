@@ -4,7 +4,7 @@ package ElevatorVerification {
     private import ElevatorArchitecture::*;
     
     // ==========================================
-    // 1. Functional Verifications (FR-01 to FR-15)    // ==========================================
+    // 1. Functional Verifications (FR-01 to FR-16)    // ==========================================
 
     verification def VerifyAcceptFloorRequests {
         subject uiSubsystem : UserInterfaceSubsystem;
@@ -65,7 +65,7 @@ package ElevatorVerification {
     verification def VerifyDetectOverloadConditions {
         subject system : SmartElevatorSystem;
         objective {
-            doc /* Load the cabin above its 1000 kg capacity and confirm overloadDetected becomes true; confirm it is not raised at or below capacity. The exact boundary at 1000 kg is not specified and needs team confirmation. */
+            doc /* At 1000 kg, confirm overloadDetected is false. Above 1000 kg, confirm overloadDetected becomes true. */
             verify req_detectOverloadConditions;
         }
     }
@@ -122,6 +122,13 @@ package ElevatorVerification {
         objective {
             doc /* Move the cabin between floors and confirm audio plays only while the cabin is moving; confirm it is muted when the cabin is stationary and halts when the doors begin opening. */
             verify req_playAudioDuringMotion;
+        }
+    }
+    verification def VerifyActivateOverloadAlarm {
+    subject system : SmartElevatorSystem;
+    objective {
+        doc /* Load the cabin above 1000 kg and confirm that an audible overload warning is activated. Reduce the load to 1000 kg or below and confirm that the overload warning is deactivated. */
+        verify req_activateOverloadAlarm;
         }
     }
 

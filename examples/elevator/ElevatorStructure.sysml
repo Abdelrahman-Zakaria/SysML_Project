@@ -56,6 +56,12 @@ package ElevatorStructure {
     item def AudioCommand {
         attribute playMusic : Boolean;
         attribute announcementId : Integer;
+        attribute playOverloadWarning : Boolean;
+    }
+
+    item def LoadData {
+    attribute loadWeight : Real;
+    attribute capacity : Real;
     }
 
     // =======================
@@ -90,6 +96,11 @@ package ElevatorStructure {
         end target;
     }
 
+    interface def LoadInterface {
+    end source;
+    end target;
+    }
+
     // =======================================
     // Subsystem Part Definitions with Ports
     // =======================================
@@ -97,11 +108,13 @@ package ElevatorStructure {
         attribute currentFloor : Integer;
         attribute loadWeight : Real;
         attribute capacity : Real = 1000.0; // kg
+        port loadPort : LoadInterface;
     }
 
     part def Controller {
         attribute targetFloor : Integer;
         attribute direction : ElevatorDirection;
+        attribute isOverloaded : Boolean = false;
         
         port requestPort : UserRequestInterface;
         port positionPort : PositionInterface;
@@ -134,6 +147,7 @@ package ElevatorStructure {
         attribute overloadDetected : Boolean;
         attribute emergencyActive : Boolean;
         port safetyPort : SafetyInterface;
+        port loadPort : LoadInterface;
     }
 
     part def UserInterfaceSubsystem {
@@ -198,6 +212,10 @@ package ElevatorStructure {
 
         connect controller.audioPort to soundSubsystem.audioPort {
             flow of AudioCommand; 
+        }
+
+        connect elevatorCar.loadPort to safetySubsystem.loadPort {
+        flow of LoadData;
         }
     }
 }

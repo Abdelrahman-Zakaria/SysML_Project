@@ -71,4 +71,29 @@ package ElevatorParametrics {
             in avgWaitTime = calculatedAvgWaitTime;
         }
     }
+    // Overload Check Constraint
+    constraint def OverloadConditionConstraint {
+        in currentLoad : Real;
+        in maximumLoad : Real;
+        in isOverloaded : Boolean;
+
+        isOverloaded == (currentLoad > maximumLoad)
+    }
+
+    // Overload Safety Analysis Case
+    analysis def CabinOverloadSafetyAnalysis {
+        subject elevatorSystem : SmartElevatorSystem;
+        in attribute testCabinLoad : Real = 1050.0;
+        in attribute ratedCapacity : Real = 1000.0;
+        out attribute overloadStateTriggered : Boolean;
+
+        constraint overloadAnalysis : OverloadConditionConstraint {
+            in currentLoad = testCabinLoad;
+            in maximumLoad = ratedCapacity;
+            in isOverloaded = overloadStateTriggered;
+        }
+    }
+
+
+
 }

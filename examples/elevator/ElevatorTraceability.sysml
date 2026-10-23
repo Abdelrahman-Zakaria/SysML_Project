@@ -47,6 +47,10 @@ package ElevatorTraceability {
         doc /* The audio playback shall halt within 100 ms of the motor drive reaching zero speed or transitioning to the DoorOpening state. */
     }
 
+    requirement def <'FR-16a'> AudibleOverloadWarning {
+    doc /* The audible overload warning shall activate when the cabin load exceeds its rated capacity and deactivate when the load returns to or below the rated capacity. */
+    }
+
     requirement def <'SR-01a'> DoorSensorSensitivity {
         doc /* Object detection sensors shall trigger on obstacles larger than 10mm in thickness. */
     }
@@ -90,6 +94,7 @@ package ElevatorTraceability {
         requirement req_FR08a : OverloadThresholdCheck;
         requirement req_FR09a : OverloadMotionInterlock;
         requirement req_FR15a : AudioMotionInterlock;
+        requirement req_FR16a : AudibleOverloadWarning;
 
         requirement req_SR01a : DoorSensorSensitivity;
         requirement req_SR02a : DoorReversalTime;
@@ -148,6 +153,10 @@ package ElevatorTraceability {
         end #original origReq : PlayAudioDuringMotion;
         end #derive derivedReq : AudioMotionInterlock;
     }
+    #derivation connection def FR16_to_FR16a {
+    end #original origReq : ActivateOverloadAlarm;
+    end #derive derivedReq : AudibleOverloadWarning;
+    }
     #derivation connection def SR01_to_SR01a {
         end #original origReq : DetectDoorObstruction;
         end #derive derivedReq : DoorSensorSensitivity;
@@ -176,6 +185,7 @@ package ElevatorTraceability {
         end #original origReq : SupportMaximumLoad;
         end #derive derivedReq : RatedCabinCapacity;
     }
+
    
 
     // ==========================================
@@ -219,6 +229,10 @@ package ElevatorTraceability {
         #derivation connection trace_FR09_to_FR09a : FR09_to_FR09a {
             end origReq ::> req_preventMotionOverload;
             end derivedReq ::> systemRequirementTraceability.req_FR09a;
+        }
+        #derivation connection trace_FR16_to_FR16a : FR16_to_FR16a {
+        end origReq ::> req_activateOverloadAlarm;
+        end derivedReq ::> systemRequirementTraceability.req_FR16a;
         }
         #derivation connection trace_SR01_to_SR01a : SR01_to_SR01a {
             end origReq ::> req_detectDoorObstruction;

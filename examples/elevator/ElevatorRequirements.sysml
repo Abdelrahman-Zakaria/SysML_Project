@@ -49,6 +49,9 @@ package ElevatorRequirements {
     requirement def <'FR-15'> PlayAudioDuringMotion {
         doc /* The system shall play background audio exclusively while the elevator cabin is in motion, and mute when stationary. */
     }
+    requirement def <'FR-16'> ActivateOverloadAlarm {
+    doc /* The system shall activate an audible warning when the cabin load exceeds 1000 kg, and deactivate the warning when the load returns to 1000 kg or below. */
+    }
 
     // ==========================================
     // Safety Requirements (SR)
@@ -116,6 +119,7 @@ package ElevatorRequirements {
         requirement fr13 : SupportRemoteDiagnostics;
         requirement fr14 : OptimizeWaitTime;
         requirement fr15 : PlayAudioDuringMotion;
+        requirement fr16 : ActivateOverloadAlarm;
 
         // Safety Requirement Usages
         requirement sr01 : DetectDoorObstruction;

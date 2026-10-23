@@ -19,6 +19,7 @@ package ElevatorArchitecture {
     requirement req_supportRemoteDiagnostics : SupportRemoteDiagnostics;
     requirement req_optimizeWaitTime : OptimizeWaitTime;
     requirement req_playAudioDuringMotion : PlayAudioDuringMotion;
+    requirement req_activateOverloadAlarm : ActivateOverloadAlarm;
 
     // ==========================================
     // Safety Requirement Usages (SR-01 to SR-07)
@@ -66,6 +67,10 @@ package ElevatorArchitecture {
     satisfy req_optimizeWaitTime by SmartElevatorSystem::controller;
     satisfy req_playAudioDuringMotion by SmartElevatorSystem::soundSubsystem;
     satisfy req_playAudioDuringMotion by SmartElevatorSystem::controller;
+    satisfy req_activateOverloadAlarm by SmartElevatorSystem::safetySubsystem;
+    satisfy req_activateOverloadAlarm by SmartElevatorSystem::controller;
+    satisfy req_activateOverloadAlarm by SmartElevatorSystem::soundSubsystem;
+
 
     // Safety Satisfactions
 
