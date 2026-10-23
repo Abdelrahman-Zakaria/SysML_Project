@@ -51,6 +51,22 @@ package ElevatorParametrics {
         avgWaitTime == totalWaitTime / numberOfRequests
     }
 
+    // 4. Battery Rescue Feasibility: battery energy must cover travel to the nearest floor
+    calc def BatteryRescueCheck {
+        in batteryEnergy : Real;     // available battery energy
+        in energyPerFloor : Real;    // energy needed per floor travelled
+        in floorsToNearest : Integer;
+        return feasible : Boolean = batteryEnergy >= energyPerFloor * floorsToNearest;
+    }
+
+    constraint def BatteryRescueConstraint {
+        in batteryEnergy : Real;
+        in energyPerFloor : Real;
+        in floorsToNearest : Integer;
+
+        batteryEnergy >= energyPerFloor * floorsToNearest
+    }
+
     // ==========================================
     // Analysis Case Model
     // ==========================================

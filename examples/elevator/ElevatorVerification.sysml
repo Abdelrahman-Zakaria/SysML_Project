@@ -228,4 +228,24 @@ package ElevatorVerification {
             verify req_maintenanceResponseTime;
         }
     }
+
+    // ==========================================
+    // 4. Added Verifications (Fire Recall, Backup Power)
+    // ==========================================
+
+    verification def VerifyFireAlarmInput {
+        subject fireInterface : FireInterfaceSubsystem;
+        objective {
+            doc /* Raise a building fire alarm and confirm fireAlarmActive becomes true and a FireAlarmSignal reaches the controller. */
+            verify req_executeFireRecall;
+        }
+    }
+
+    verification def VerifyBackupPowerSwitchover {
+        subject powerSubsystem : PowerSubsystem;
+        objective {
+            doc /* Remove main power and confirm activeSource changes from MAINS to BATTERY and a PowerStatus message reaches the controller. */
+            verify req_utilizeBackupPower;
+        }
+    }
 }

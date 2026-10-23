@@ -17,6 +17,10 @@ package ElevatorBehavior {
     action def EnterMaintenanceMode;
     action def StartAudio;
     action def StopAudio;
+    action def RecallToGround;
+    action def SwitchToBattery;
+    action def StartIntercom;
+    action def EndIntercom;
 
   // 2. Action Sequences
     action def ElevatorTrip {
@@ -57,6 +61,11 @@ package ElevatorBehavior {
         item def MaintenanceCompleted;
         item def FaultDetected;
         item def FaultCleared;
+        item def FireAlarmActivated;
+        item def FireAlarmCleared;
+        item def PowerFailed;
+        item def PowerRestored;
+        item def ObstructionDetected;
 
 
     // =========================
@@ -86,6 +95,8 @@ package ElevatorBehavior {
         state Emergency;
         state Maintenance;
         state Fault;
+        state FireRecall;
+        state BackupPowerRescue;
 
     transition initTrans
             first initializeElevator
@@ -232,6 +243,62 @@ package ElevatorBehavior {
         first Fault
         accept FaultCleared
         then Idle;
+
+    // Fire Recall Handling (SR-07)
+
+    transition fireFromIdle
+        first Idle
+        accept FireAlarmActivated
+        then FireRecall;
+
+    transition fireFromMovingUp
+        first MovingUp
+        accept FireAlarmActivated
+        then FireRecall;
+
+    transition fireFromMovingDown
+        first MovingDown
+        accept FireAlarmActivated
+        then FireRecall;
+
+    transition fireFromDoorOpen
+        first DoorOpen
+        accept FireAlarmActivated
+        then FireRecall;
+
+    transition clearFire
+        first FireRecall
+        accept FireAlarmCleared
+        then Idle;
+
+    // Backup Power Handling (SR-05)
+
+    transition powerLossFromIdle
+        first Idle
+        accept PowerFailed
+        then BackupPowerRescue;
+
+    transition powerLossFromMovingUp
+        first MovingUp
+        accept PowerFailed
+        then BackupPowerRescue;
+
+    transition powerLossFromMovingDown
+        first MovingDown
+        accept PowerFailed
+        then BackupPowerRescue;
+
+    transition powerRestored
+        first BackupPowerRescue
+        accept PowerRestored
+        then Idle;
+
+    // Door Obstruction Reversal (SR-02)
+
+    transition obstructionReverse
+        first DoorClosing
+        accept ObstructionDetected
+        then DoorOpening;
     }
 
 
