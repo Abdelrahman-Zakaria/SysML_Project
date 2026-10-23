@@ -248,4 +248,11 @@ package ElevatorVerification {
             verify req_utilizeBackupPower;
         }
     }
+        verification def VerifyIntercomSession {
+        subject intercomSubsystem : IntercomSubsystem;
+        objective {
+            doc /* With the system in the Emergency state, press the intercom button and confirm isActive and isConnected become true and an IntercomCommand reaches the intercom subsystem; end the call and confirm both return to false and the system returns to Emergency. */
+            verify req_provideIntercom;
+        }
+    }
 }

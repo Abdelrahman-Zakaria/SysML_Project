@@ -66,6 +66,8 @@ package ElevatorBehavior {
         item def PowerFailed;
         item def PowerRestored;
         item def ObstructionDetected;
+        item def IntercomRequested;
+        item def IntercomEnded;
 
 
     // =========================
@@ -97,6 +99,12 @@ package ElevatorBehavior {
         state Fault;
         state FireRecall;
         state BackupPowerRescue;
+
+        // Two-way cabin intercom session (SR-06), reachable only from Emergency
+        state IntercomSession {
+            entry action openIntercomChannel : StartIntercom;
+            exit action closeIntercomChannel : EndIntercom;
+        }
 
     transition initTrans
             first initializeElevator
@@ -299,6 +307,20 @@ package ElevatorBehavior {
         first DoorClosing
         accept ObstructionDetected
         then DoorOpening;
+
+    // Intercom Handling (SR-06)
+    // A trapped passenger presses the intercom button while the system is in Emergency;
+    // when the call ends, control returns to Emergency (it is cleared separately).
+
+    transition startIntercomSession
+        first Emergency
+        accept IntercomRequested
+        then IntercomSession;
+
+    transition endIntercomSession
+        first IntercomSession
+        accept IntercomEnded
+        then Emergency;
     }
 
 

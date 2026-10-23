@@ -63,6 +63,18 @@ package ElevatorTraceability {
         doc /* Backup lighting and alarm chime shall activate immediately upon emergency mode entry. */
     }
 
+    requirement def <'SR-05a'> BatteryRescueRange {
+        doc /* Backup battery energy shall be at least the energy per floor multiplied by the number of floors to the nearest floor (see BatteryRescueConstraint). */
+    }
+
+    requirement def <'SR-06a'> IntercomConnectionTime {
+        doc /* The intercom shall establish a two-way audio connection within 3 seconds of the intercom button being pressed. */
+    }
+
+    requirement def <'SR-07a'> FireRecallResponseTime {
+        doc /* On a fire alarm the cabin shall cancel pending requests and begin travel to the recall floor within 1 second. */
+    }
+
     requirement def <'PR-01a'> AccelerationRampUp {
         doc /* Motor drive acceleration rate shall achieve nominal cruise speed within 2.0 seconds. */
     }
@@ -95,6 +107,9 @@ package ElevatorTraceability {
         requirement req_SR02a : DoorReversalTime;
         requirement req_SR03a : SafetyBrakeEngagement;
         requirement req_SR04a : EmergencyLightingActivation;
+        requirement req_SR05a : BatteryRescueRange;
+        requirement req_SR06a : IntercomConnectionTime;
+        requirement req_SR07a : FireRecallResponseTime;
 
         requirement req_PR01a : AccelerationRampUp;
         requirement req_PR02a : CANBusPriority;
@@ -163,6 +178,18 @@ package ElevatorTraceability {
     #derivation connection def SR04_to_SR04a {
         end #original origReq : EnterEmergencyMode;
         end #derive derivedReq : EmergencyLightingActivation;
+    }
+    #derivation connection def SR05_to_SR05a {
+        end #original origReq : UtilizeBackupPower;
+        end #derive derivedReq : BatteryRescueRange;
+    }
+    #derivation connection def SR06_to_SR06a {
+        end #original origReq : ProvideIntercom;
+        end #derive derivedReq : IntercomConnectionTime;
+    }
+    #derivation connection def SR07_to_SR07a {
+        end #original origReq : ExecuteFireRecall;
+        end #derive derivedReq : FireRecallResponseTime;
     }
     #derivation connection def PR01_to_PR01a {
         end #original origReq : MaxTravelTime;
@@ -235,6 +262,18 @@ package ElevatorTraceability {
         #derivation connection trace_SR04_to_SR04a : SR04_to_SR04a {
             end origReq ::> req_enterEmergencyMode;
             end derivedReq ::> systemRequirementTraceability.req_SR04a;
+        }
+        #derivation connection trace_SR05_to_SR05a : SR05_to_SR05a {
+            end origReq ::> req_utilizeBackupPower;
+            end derivedReq ::> systemRequirementTraceability.req_SR05a;
+        }
+        #derivation connection trace_SR06_to_SR06a : SR06_to_SR06a {
+            end origReq ::> req_provideIntercom;
+            end derivedReq ::> systemRequirementTraceability.req_SR06a;
+        }
+        #derivation connection trace_SR07_to_SR07a : SR07_to_SR07a {
+            end origReq ::> req_executeFireRecall;
+            end derivedReq ::> systemRequirementTraceability.req_SR07a;
         }
         #derivation connection trace_PR01_to_PR01a : PR01_to_PR01a {
             end origReq ::> req_maxTravelTime;
