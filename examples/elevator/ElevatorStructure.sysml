@@ -17,6 +17,11 @@ package ElevatorStructure {
         enum IDLE;
     }
 
+    enum def PowerSource {
+        enum MAINS;
+        enum BATTERY;
+    }
+
     // ===================
     // Item Definitions
     // ===================
@@ -58,6 +63,21 @@ package ElevatorStructure {
         attribute announcementId : Integer;
     }
 
+    item def FireAlarmSignal {
+        attribute isFireAlarmActive : Boolean;
+        attribute recallFloor : Integer = 0;
+    }
+
+    item def PowerStatus {
+        attribute source : PowerSource;
+        attribute batteryPercent : Real;
+    }
+
+    item def IntercomCommand {
+        attribute isIntercomActive : Boolean;
+        attribute isConnected : Boolean;
+    }
+
     // =======================
     // Interface Definitions
     // =======================
@@ -89,6 +109,18 @@ package ElevatorStructure {
         end source;
         end target;
     }
+    interface def FireAlarmInterface {
+        end source;
+        end target;
+    }
+    interface def PowerInterface {
+        end source;
+        end target;
+    }
+    interface def IntercomInterface {
+        end source;
+        end target;
+    }
 
     // =======================================
     // Subsystem Part Definitions with Ports
@@ -110,6 +142,9 @@ package ElevatorStructure {
         port safetyPort : SafetyInterface;
         port maintenancePort : MaintenanceInterface;
         port audioPort : AudioControlInterface;
+        port fireAlarmPort : FireAlarmInterface;
+        port powerPort : PowerInterface;
+        port intercomPort : IntercomInterface;
     }
 
     part def DoorSubsystem {
@@ -154,6 +189,23 @@ package ElevatorStructure {
         port audioPort : AudioControlInterface;
     }
 
+    part def FireInterfaceSubsystem {
+        attribute fireAlarmActive : Boolean;
+        port fireAlarmPort : FireAlarmInterface;
+    }
+
+    part def PowerSubsystem {
+        attribute activeSource : PowerSource = PowerSource::MAINS;
+        attribute batteryPercent : Real;
+        port powerPort : PowerInterface;
+    }
+
+    part def IntercomSubsystem {
+        attribute isActive : Boolean;
+        attribute isConnected : Boolean;
+        port intercomPort : IntercomInterface;
+    }
+
     // =======================================
     // System Composition (Top-Level System)
     // =======================================
@@ -170,6 +222,9 @@ package ElevatorStructure {
         part uiSubsystem : UserInterfaceSubsystem;
         part maintenanceSubsystem : MaintenanceSubsystem;
         part soundSubsystem : SoundSubsystem;
+        part fireInterface : FireInterfaceSubsystem;
+        part powerSubsystem : PowerSubsystem;
+        part intercomSubsystem : IntercomSubsystem;
 
         // Connections with Item Flows (Deliverable 10)
         connect uiSubsystem.requestPort to controller.requestPort {
@@ -198,6 +253,18 @@ package ElevatorStructure {
 
         connect controller.audioPort to soundSubsystem.audioPort {
             flow of AudioCommand; 
+        }
+
+        connect fireInterface.fireAlarmPort to controller.fireAlarmPort {
+            flow of FireAlarmSignal;
+        }
+
+        connect powerSubsystem.powerPort to controller.powerPort {
+            flow of PowerStatus;
+        }
+
+        connect controller.intercomPort to intercomSubsystem.intercomPort {
+            flow of IntercomCommand;
         }
     }
 }

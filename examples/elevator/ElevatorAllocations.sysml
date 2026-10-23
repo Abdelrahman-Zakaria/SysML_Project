@@ -19,6 +19,10 @@ package ElevatorAllocations {
     action enterMaintenanceMode : EnterMaintenanceMode;
     action startAudio : StartAudio;
     action stopAudio : StopAudio;
+    action recallToGround : RecallToGround;
+    action switchToBattery : SwitchToBattery;
+    action startIntercom : StartIntercom;
+    action endIntercom : EndIntercom;
 
     // ==========================================
     // 2. Allocate Action Features to Part Features
@@ -54,4 +58,14 @@ package ElevatorAllocations {
 
     allocate startAudio to SmartElevatorSystem::soundSubsystem;
     allocate stopAudio to SmartElevatorSystem::soundSubsystem;
+
+    // Fire Recall Actions
+    allocate recallToGround to SmartElevatorSystem::controller;
+
+    // Power Subsystem Actions
+    allocate switchToBattery to SmartElevatorSystem::powerSubsystem;
+
+    // Intercom Actions
+    allocate startIntercom to SmartElevatorSystem::intercomSubsystem;
+    allocate endIntercom to SmartElevatorSystem::intercomSubsystem;
 }
