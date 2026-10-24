@@ -3,7 +3,9 @@ package ElevatorArchitecture {
     private import ElevatorStructure::*;
 
      // ==========================================
-// Functional Requirement Usages (FR-01 to FR-15)    // ==========================================
+    // ==========================================
+    // Functional Requirement Usages (FR-01 to FR-15)
+    // ==========================================
     requirement req_acceptFloorRequests : AcceptFloorRequests;
     requirement req_acceptDestinationRequests : AcceptDestinationRequests;
     requirement req_transportPassengers : TransportPassengers;
@@ -77,9 +79,12 @@ package ElevatorArchitecture {
     satisfy req_enterEmergencyMode by SmartElevatorSystem::safetySubsystem;
     satisfy req_utilizeBackupPower by SmartElevatorSystem::controller;
     satisfy req_utilizeBackupPower by SmartElevatorSystem::motorSubsystem;
+    satisfy req_utilizeBackupPower by SmartElevatorSystem::powerSubsystem;
     satisfy req_provideIntercom by SmartElevatorSystem::uiSubsystem;
+    satisfy req_provideIntercom by SmartElevatorSystem::intercomSubsystem;
     satisfy req_executeFireRecall by SmartElevatorSystem::controller;
     satisfy req_executeFireRecall by SmartElevatorSystem::doorSubsystem;
+    satisfy req_executeFireRecall by SmartElevatorSystem::fireInterface;
 
      // Performance Satisfactions
 
