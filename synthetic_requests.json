@@ -1,0 +1,5 @@
+[
+  {"id": "req-001", "text": "Build a small command-line tool that reads a fabricated CSV of library loans and prints which loans are overdue, grouped by borrower. Use only made-up sample data."},
+  {"id": "req-002", "text": "Add a dark-mode toggle to a fictional recipe-sharing website. The setting should persist between visits and respect the visitor's system preference by default."},
+  {"id": "req-003", "text": "Fix a bug in an imaginary to-do app where completed tasks reappear after the page is refreshed. Include tests that would have caught it."}
+]
