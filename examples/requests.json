@@ -1,0 +1,8 @@
+[
+  {"id": "library-checkout",
+   "request": "We run a small community library and want a simple site to track which books are checked out and by whom."},
+  {"id": "recipe-importer",
+   "request": "I'd like a command-line tool that reads recipe text files and produces a weekly shopping list."},
+  {"id": "vague-app",
+   "request": "Make me an app for my business."}
+]

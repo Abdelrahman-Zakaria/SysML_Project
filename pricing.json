@@ -1,0 +1,7 @@
+{
+  "_comment": "USD per million tokens. Add one entry per real teacher model from the provider's official pricing page, with as_of date. The fake entry is FABRICATED for offline demos/tests.",
+  "currency": "USD",
+  "models": {
+    "fake-teacher-1": {"input_per_mtok": 1.0, "output_per_mtok": 5.0, "as_of": "fabricated"}
+  }
+}
