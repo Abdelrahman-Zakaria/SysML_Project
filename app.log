@@ -1,0 +1,55 @@
+{"model_id": "Qwen/Qwen3-32B", "prompt_version": "intent-v1", "duration_seconds": 0.0002, "token_usage": {"input_tokens": 35, "output_tokens": 45}, "estimated_cost": null, "status": "success", "error_type": null}
+{"model_id": "Qwen/Qwen3-32B", "prompt_version": "intent-v1", "duration_seconds": 0.0003, "token_usage": {"input_tokens": 35, "output_tokens": 45}, "estimated_cost": null, "status": "success", "error_type": null}
+{"model_id": "Qwen/Qwen3-32B", "prompt_version": "intent-v1", "duration_seconds": 0.0003, "token_usage": {"input_tokens": 35, "output_tokens": 45}, "estimated_cost": null, "status": "success", "error_type": null}
+{"model_id": "Qwen/Qwen3-32B", "prompt_version": "intent-v1", "duration_seconds": 0.0002, "token_usage": {"input_tokens": 35, "output_tokens": 45}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 9.1482, "token_usage": {"input_tokens": 277, "output_tokens": 286}, "estimated_cost": null, "status": "success", "error_type": null}
+Retrying request to /openai/v1/chat/completions in 0.442175 seconds
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 16.2623, "token_usage": {"input_tokens": 271, "output_tokens": 135}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 7.3393, "token_usage": {"input_tokens": 256, "output_tokens": 288}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.5922, "token_usage": {"input_tokens": 257, "output_tokens": 383}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.2848, "token_usage": {"input_tokens": 254, "output_tokens": 350}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.3895, "token_usage": {"input_tokens": 256, "output_tokens": 272}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.1852, "token_usage": {"input_tokens": 270, "output_tokens": 221}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 0.8316, "token_usage": {"input_tokens": 271, "output_tokens": 137}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 4.3345, "token_usage": {"input_tokens": 263, "output_tokens": 293}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.1984, "token_usage": {"input_tokens": 261, "output_tokens": 232}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.6903, "token_usage": {"input_tokens": 261, "output_tokens": 240}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.9302, "token_usage": {"input_tokens": 259, "output_tokens": 518}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 2.4438, "token_usage": {"input_tokens": 259, "output_tokens": 638}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.2844, "token_usage": {"input_tokens": 258, "output_tokens": 282}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.9577, "token_usage": {"input_tokens": 258, "output_tokens": 244}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.8893, "token_usage": {"input_tokens": 266, "output_tokens": 305}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.0686, "token_usage": {"input_tokens": 266, "output_tokens": 245}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 3.9594, "token_usage": {"input_tokens": 261, "output_tokens": 216}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.0658, "token_usage": {"input_tokens": 311, "output_tokens": 221}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.1096, "token_usage": {"input_tokens": 306, "output_tokens": 193}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.2082, "token_usage": {"input_tokens": 309, "output_tokens": 228}, "estimated_cost": null, "status": "rejected", "error_type": "invalid_output"}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.6309, "token_usage": {"input_tokens": 346, "output_tokens": 274}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 2.0323, "token_usage": {"input_tokens": 344, "output_tokens": 223}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 1.0634, "token_usage": {"input_tokens": 350, "output_tokens": 179}, "estimated_cost": null, "status": "success", "error_type": null}
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+{"model_id": "openai/gpt-oss-120b", "prompt_version": "intent-v1", "duration_seconds": 12.9396, "token_usage": {"input_tokens": 348, "output_tokens": 191}, "estimated_cost": null, "status": "success", "error_type": null}
