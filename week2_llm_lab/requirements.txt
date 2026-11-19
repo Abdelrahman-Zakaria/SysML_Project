@@ -2,3 +2,5 @@
 requests
 pytest
 pydantic
+huggingface_hub
+python-dotenv
