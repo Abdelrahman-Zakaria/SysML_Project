@@ -1,0 +1,62 @@
+[
+  {
+    "id": "chatcmpl-89c9bcee-d033-47f0-b3a8-15da649120a3",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "content": "{\"type\": \"tool_call\", \"tool\": \"inspect_model\", \"args\": {\"element_id\": \"P-BAT\"}}",
+          "refusal": null,
+          "role": "assistant",
+          "reasoning_content": "We need total mass of rover battery P-BAT. Need to inspect model for element P-BAT, get its mass property. Use inspect_model tool. Probably need element_id \"P-BAT\". Let's call inspect_model with element_id \"P-BAT\"."
+        },
+        "finish_reason": "stop",
+        "logprobs": null
+      }
+    ],
+    "created": 1795204078,
+    "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    "object": "chat.completion",
+    "usage": {
+      "prompt_tokens": 421,
+      "completion_tokens": 84,
+      "total_tokens": 505,
+      "prompt_tokens_details": {
+        "cached_tokens": 336
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 54
+      }
+    }
+  },
+  {
+    "id": "chatcmpl-44a4123b-8fad-4642-a31b-f21503171102",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "content": "{\"type\": \"no_evidence\", \"reason\": \"The inspected model element P-BAT (BatteryPack) does not provide any mass information in the returned data.\", \"evidence_ids\": []}",
+          "refusal": null,
+          "role": "assistant",
+          "reasoning_content": "We need total mass in kilograms of rover battery P-BAT. The inspect_model result shows parts list with id P-BAT, name BatteryPack, domain power. No mass info shown. Possibly mass is a property of part, but not included in result. We need to see if there is mass attribute. The result only includes id, name, domain. No mass. So we cannot answer. Maybe need to inspect further? Could be that mass is part of part's properties not shown. The tool might need element_id to get details. We already gave element_id P-BAT. The result didn't include mass. So maybe need to ask for more details? But tool only returns what's in model. If mass not present, we cannot answer. So we must reply with no_evidence because we lack evidence of mass. However maybe we can propose to inspect again with maybe different element? But we already have P-BAT. If mass not present, no evidence.\n\nThus answer: no_evidence."
+        },
+        "finish_reason": "stop",
+        "logprobs": null
+      }
+    ],
+    "created": 1795204079,
+    "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    "object": "chat.completion",
+    "usage": {
+      "prompt_tokens": 602,
+      "completion_tokens": 254,
+      "total_tokens": 856,
+      "prompt_tokens_details": {
+        "cached_tokens": 560
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 208
+      }
+    }
+  }
+]
