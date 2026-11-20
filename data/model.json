@@ -1,0 +1,42 @@
+
+{
+  "model_id": "SYSML-DEMO-001",
+  "elements": [
+    {
+
+        
+      "id": "BLK-001",
+      "type": "Block",
+      "name": "System",
+      "attributes": [
+        {
+          "name": "voltage",
+          "type": "Real"
+        }
+      ]
+    },
+    {
+      "id": "BLK-002",
+      "type": "Block",
+      "name": "Sensor",
+      "attributes": [
+        {
+          "name": "sensorId",
+          "type": "Integer"
+        }
+      ]
+    },
+    {
+      "id": "REQ-001",
+      "type": "Requirement",
+      "name": "System shall be reliable",
+      "description": "The system shall operate reliably."
+    },
+    {
+      "id": "REQ-002",
+      "type": "Requirement",
+      "name": "System shall monitor temperature",
+      "description": "The system shall monitor temperature."
+    }
+  ]
+}
