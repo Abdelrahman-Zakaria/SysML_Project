@@ -5,39 +5,33 @@ from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 
 from config import MODEL_ID, INFERENCE_PROVIDER, API_KEY_ENV_VAR
+from structured_output import build_response_format
 
 
-# Load environment variables from the project .env file.
 ENV_FILE = Path(__file__).with_name(".env")
 load_dotenv(ENV_FILE)
 
 
 def create_client() -> InferenceClient:
-    """
-    Create an authenticated connection to the selected provider.
-    """
+    """Create an authenticated inference client."""
 
     api_key = os.getenv(API_KEY_ENV_VAR)
 
     if not api_key:
         raise RuntimeError(
-            f"Missing API key. Set {API_KEY_ENV_VAR} in your .env file."
+            f"Missing API key. Set {API_KEY_ENV_VAR} in .env."
         )
 
-    client = InferenceClient(
+    return InferenceClient(
         model=MODEL_ID,
         provider=INFERENCE_PROVIDER,
         api_key=api_key,
         timeout=60
     )
 
-    return client
-
 
 def generate_response(messages: list[dict[str, str]]):
-    """
-    Send chat messages to the LLM and return the full response.
-    """
+    """Send messages and request structured JSON output."""
 
     if not messages:
         raise ValueError("Messages cannot be empty.")
@@ -46,6 +40,7 @@ def generate_response(messages: list[dict[str, str]]):
 
     response = client.chat_completion(
         messages=messages,
+        response_format=build_response_format(),
         max_tokens=500
     )
 
