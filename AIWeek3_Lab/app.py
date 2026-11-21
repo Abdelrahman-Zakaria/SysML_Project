@@ -223,10 +223,10 @@ def run_agent(
 
 def get_model_decision(request: str, history: list[dict[str, Any]]) -> ToolCall:
     base_url = os.getenv("BASE_URL")
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("API_KEY")
     model_id = os.getenv("MODEL_ID")
     if not base_url or not api_key or not model_id:
-        raise ValueError("BASE_URL, GEMINI_API_KEY, and MODEL_ID are required.")
+        raise ValueError("BASE_URL, API_KEY, and MODEL_ID are required.")
 
     client = InferenceClient(base_url=base_url, api_key=api_key)
     response = client.chat_completion(

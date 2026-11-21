@@ -36,8 +36,10 @@ python -m pip install -r requirements.txt
 ```
 
 For an optional live run, create `.env` from `.env.example` and set your own
-provider URL, API key, and model ID. Do not commit `.env` or an API key.
-Offline tests do not require an API key.
+OpenAI-compatible provider URL, API key, and model ID. Any provider is suitable
+if its endpoint supports the chat-completion interface used by
+`huggingface_hub.InferenceClient`. Do not commit `.env` or an API key. Offline
+tests do not require an API key.
 
 ```powershell
 Copy-Item .env.example .env
