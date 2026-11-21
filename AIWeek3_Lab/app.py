@@ -103,8 +103,21 @@ class ModelOutputError(ValueError):
     """The provider returned an empty or structurally invalid decision."""
 
 
+class AgentEvent(BaseModel):
+    kind: Literal[
+        "user_message", "assistant_decision", "tool_call", "tool_result",
+        "decision_error", "assistant_final",
+    ]
+    content: str | None = None
+    tool_name: str | None = None
+    arguments: dict[str, Any] | None = None
+    decision: dict[str, Any] | None = None
+    result: dict[str, Any] | None = None
+
+
 class ToolObservation(BaseModel):
     tool_name: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
     success: bool
     evidence: dict[str, Any] = Field(default_factory=dict)
     error_code: str | None = None
@@ -118,6 +131,7 @@ class AgentResult(BaseModel):
         "requires_review", "cancelled",
     ]
     observations: list[ToolObservation] = Field(default_factory=list)
+    events: list[AgentEvent] = Field(default_factory=list)
     message: str
     metadata: dict[str, Any] = Field(
         default_factory=lambda: {
@@ -337,15 +351,19 @@ def execute_tool(call: ToolCall, timeout_seconds: float = MAX_RUNTIME_SECONDS) -
     if definition is None:
         return ToolObservation(
             tool_name=call.tool_name,
+            arguments=call.arguments,
             success=False,
             error_code="unknown_tool",
             error_message="The requested tool is not allow-listed.",
         )
+    validated_arguments = call.arguments
     try:
         arguments = definition.argument_model.model_validate(call.arguments)
+        validated_arguments = arguments.model_dump()
         evidence = definition.handler(arguments, timeout_seconds)
         return ToolObservation(
             tool_name=call.tool_name,
+            arguments=validated_arguments,
             success=True,
             evidence=evidence,
             requires_review=call.tool_name == "propose_requirement",
@@ -353,6 +371,7 @@ def execute_tool(call: ToolCall, timeout_seconds: float = MAX_RUNTIME_SECONDS) -
     except ValidationError as error:
         return ToolObservation(
             tool_name=call.tool_name,
+            arguments=call.arguments,
             success=False,
             error_code="invalid_arguments",
             error_message=str(error),
@@ -360,6 +379,7 @@ def execute_tool(call: ToolCall, timeout_seconds: float = MAX_RUNTIME_SECONDS) -
     except LookupError as error:
         return ToolObservation(
             tool_name=call.tool_name,
+            arguments=validated_arguments,
             success=False,
             error_code="no_evidence",
             error_message=str(error),
@@ -367,6 +387,7 @@ def execute_tool(call: ToolCall, timeout_seconds: float = MAX_RUNTIME_SECONDS) -
     except Exception as error:
         return ToolObservation(
             tool_name=call.tool_name,
+            arguments=validated_arguments,
             success=False,
             error_code="tool_error",
             error_message=f"{type(error).__name__}: {error}",
@@ -414,11 +435,20 @@ def run_agent(
         "total_tokens": None,
         "calls": [],
     }
+    events: list[AgentEvent] = [AgentEvent(kind="user_message", content=request)]
 
     def result(status: str, message: str, result_observations=None) -> AgentResult:
+        events.append(
+            AgentEvent(
+                kind="assistant_final",
+                content=message,
+                result={"status": status},
+            )
+        )
         return AgentResult(
             status=status,
             observations=result_observations or [],
+            events=events,
             message=message,
             metadata={"llm_token_usage": token_usage},
         )
@@ -441,10 +471,17 @@ def run_agent(
         except KeyboardInterrupt:
             return result("cancelled", "The agent run was cancelled.", observations)
         except ModelOutputError as error:
+            events.append(AgentEvent(kind="decision_error", content=str(error)))
             return result("rejected", f"The model decision was rejected: {error}", observations)
         except Exception as error:
             elapsed = time.monotonic() - started
             status = "limit_exceeded" if elapsed >= max_runtime_seconds else "tool_error"
+            events.append(
+                AgentEvent(
+                    kind="decision_error",
+                    content=f"{type(error).__name__}: {error}",
+                )
+            )
             return result(
                 status,
                 f"Model decision failed: {type(error).__name__}: {error}",
@@ -464,9 +501,16 @@ def run_agent(
         try:
             call = ToolCall.model_validate(proposed)
         except (ValidationError, TypeError, ValueError) as error:
+            events.append(AgentEvent(kind="decision_error", content=str(error)))
             return result("rejected", f"The model decision was rejected: {error}", observations)
 
         if call.needs_clarification:
+            events.append(
+                AgentEvent(
+                    kind="assistant_decision",
+                    decision=call.model_dump(),
+                )
+            )
             return result(
                 "rejected",
                 call.clarification_question or "Please clarify the request.",
@@ -474,12 +518,59 @@ def run_agent(
             )
 
         remaining = max_runtime_seconds - (time.monotonic() - started)
+        call_id = f"call_{len(observations) + 1}"
+        events.append(
+            AgentEvent(
+                kind="tool_call",
+                tool_name=call.tool_name,
+                arguments=call.arguments,
+                decision=call.model_dump(),
+            )
+        )
+        history.append(
+            {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": call.tool_name,
+                            "arguments": json.dumps(call.arguments),
+                        },
+                    }
+                ],
+            }
+        )
         try:
             observation = execute_tool(call, max(0.0, remaining))
         except KeyboardInterrupt:
+            events.append(
+                AgentEvent(
+                    kind="tool_result",
+                    tool_name=call.tool_name,
+                    arguments=call.arguments,
+                    result={"success": False, "error_code": "cancelled"},
+                )
+            )
             return result("cancelled", "The agent run was cancelled during tool execution.", observations)
         observations.append(observation)
-        history.append({"role": "tool", "content": observation.model_dump()})
+        observation_data = observation.model_dump()
+        events.append(
+            AgentEvent(
+                kind="tool_result",
+                tool_name=observation.tool_name,
+                arguments=observation.arguments,
+                result=observation_data,
+            )
+        )
+        history.append(
+            {
+                "role": "tool",
+                "tool_call_id": call_id,
+                "content": json.dumps(observation_data),
+            }
+        )
         if time.monotonic() - started >= max_runtime_seconds:
             return result(
                 "limit_exceeded",
@@ -598,6 +689,15 @@ def format_console_result(result: AgentResult) -> str:
 
     for observation in result.observations:
         lines.extend(["", f"Tool: {observation.tool_name}"])
+        if observation.arguments:
+            lines.append("Arguments:")
+            for key, value in observation.arguments.items():
+                label = key.replace("_", " ").capitalize()
+                if isinstance(value, list):
+                    shown_value = ", ".join(str(item) for item in value)
+                else:
+                    shown_value = str(value)
+                lines.append(f"  {label}: {shown_value}")
         if observation.success:
             if observation.evidence:
                 lines.append("Evidence:")

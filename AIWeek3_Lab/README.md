@@ -56,11 +56,11 @@ examples stored in `app.py`. This is teaching data: the lab does not load or
 parse arbitrary model files. Requests for items outside the catalog return
 `no_evidence` instead of allowing the model to invent facts.
 
-`propose_requirement` builds a typed candidate in a temporary file and checks
-it with the official OMG SysML v2 Pilot Implementation kernel by default. A
-successful validation returns `requires_review`; it does not edit a project
-model. If validation fails, the tool returns an error and the proposal is not
-reported as valid.
+`propose_requirement` builds a typed SysML candidate and sends its text
+directly to the official OMG SysML v2 Pilot Implementation Jupyter kernel by
+default. A successful validation returns `requires_review`; it does not edit a
+project model. If validation fails, the tool returns an error and the proposal
+is not reported as valid.
 
 For example, a valid request could produce this candidate:
 
@@ -78,10 +78,11 @@ small typed operation this lab supports.
 
 `SYSML_VALIDATOR=` should normally be left blank. The app then uses the
 official `sysml` Jupyter kernel installed below. Set `SYSML_VALIDATOR` only to
-override that default with a local wrapper. The wrapper must accept one `.sysml`
-file path as its only argument and return exit code 0 only when the candidate
-passes validation. If the official kernel or custom wrapper cannot run, the
-proposal fails closed.
+override that default with a local wrapper. For that override path, the app
+writes the candidate to a temporary `.sysml` file and passes its path as the
+wrapper's only argument. The wrapper must return exit code 0 only when the
+candidate passes validation. If the official kernel or custom wrapper cannot
+run, the proposal fails closed.
 
 The kernel is distributed by the [official SysML v2 Pilot Implementation
 project](https://github.com/Systems-Modeling/SysML-v2-Pilot-Implementation).
@@ -100,8 +101,14 @@ project](https://github.com/Systems-Modeling/SysML-v2-Pilot-Implementation).
 - `cancelled`: the user interrupted the run.
 
 Each result also includes observations with the tool name and either evidence
-or a specific error. Token usage is printed separately in a readable section;
-the structured values remain in `metadata.llm_token_usage` for programmatic use.
+or a specific error, plus the arguments that were attempted or validated. The
+ordered `events` trace records the user message, each tool call and its
+arguments, each tool result/error, and the final answer. The model history also
+receives tool calls as assistant function-call messages and results as matching
+tool messages. The trace records observable actions only; it does not store
+hidden chain-of-thought. Token usage is printed separately in a readable
+section; the structured values remain in `metadata.llm_token_usage` for
+programmatic use.
 
 ## Setup
 
@@ -158,6 +165,8 @@ Status: SUCCESS
 The result is supported by deterministic local evidence.
 
 Tool: get_metadata
+Arguments:
+  Item id: ExampleRequirement
 Evidence:
   Item id: ExampleRequirement
   Kind: requirement_definition
