@@ -24,7 +24,7 @@ PRICING_SOURCE = (
 )
 
 
-def get_token_count(usage, field: str) -> int | None:
+def get_token_count(usage: object, field: str) -> int | None:
     """Read a token count safely from the provider response."""
 
     value = getattr(usage, field, None)
@@ -64,7 +64,7 @@ def estimate_cost_usd(
 
 
 def build_run_metadata(
-    response,
+    response: object,
     duration_seconds: float
 ) -> dict:
     """Build metadata for one completed inference request."""
@@ -85,12 +85,19 @@ def build_run_metadata(
 
     actual_model = getattr(response, "model", None)
 
+    # Why generation stopped ("stop", "length", ...), if reported.
+    choices = getattr(response, "choices", None)
+    finish_reason = (
+        getattr(choices[0], "finish_reason", None) if choices else None
+    )
+
     return {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "model_id": actual_model or MODEL_ID,
         "provider": INFERENCE_PROVIDER,
         "prompt_version": PROMPT_VERSION,
         "duration_seconds": round(duration_seconds, 4),
+        "finish_reason": finish_reason,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,

@@ -1,7 +1,6 @@
-
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 class Intent(BaseModel):
@@ -34,3 +33,40 @@ class Intent(BaseModel):
 
     # Required field, but its value can be null.
     clarification_question: str | None
+
+    @field_validator("requirement_text", "clarification_question")
+    @classmethod
+    def reject_blank_text(cls, value: str | None) -> str | None:
+        """Text fields must be null or contain real text, never ''."""
+
+        if value is not None and not value.strip():
+            raise ValueError("text fields must be null or non-blank")
+        return value.strip() if value is not None else None
+
+    @model_validator(mode="after")
+    def check_field_consistency(self) -> "Intent":
+        """Reject contradictory combinations of fields."""
+
+        if self.clarification_needed and self.clarification_question is None:
+            raise ValueError(
+                "clarification_question is required "
+                "when clarification_needed is true"
+            )
+
+        if not self.clarification_needed and self.clarification_question is not None:
+            raise ValueError(
+                "clarification_question must be null "
+                "when clarification_needed is false"
+            )
+
+        if self.intent_type == "unsupported":
+            if self.requirement_text is not None:
+                raise ValueError(
+                    "requirement_text must be null for an unsupported intent"
+                )
+            if self.clarification_needed:
+                raise ValueError(
+                    "an unsupported intent cannot need clarification"
+                )
+
+        return self

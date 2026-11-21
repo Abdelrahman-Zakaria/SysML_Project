@@ -1,6 +1,6 @@
 
 # Version of the instructions used by the application.
-PROMPT_VERSION = "intent-v1.0"
+PROMPT_VERSION = "intent-v1.1"
 
 
 # Instructions that define the model's role and task.
@@ -50,6 +50,23 @@ DECISION RULES:
 - When clarification is not needed,
   clarification_question must be null.
 
+- When clarification_needed is true,
+  clarification_question must be a non-empty question.
+
+- For an "unsupported" request, set requirement_type to "unspecified",
+  requirement_text to null, clarification_needed to false
+  and clarification_question to null.
+
+CONVERSATION RULES:
+
+- The conversation may contain earlier turns. Your earlier replies
+  appear as JSON objects.
+- If your previous reply asked a clarification question, treat the
+  user's new message as the answer and combine it with the original
+  request into one complete requirement.
+- Always answer only the latest user message, using earlier turns
+  as context.
+
 EXAMPLE:
 
 User request:
@@ -66,12 +83,48 @@ Expected JSON:
   "clarification_needed": false,
   "clarification_question": null
 }
+
+EXAMPLE (clarification needed):
+
+User request: "Write a requirement for the brakes."
+
+Expected JSON:
+
+{
+  "schema_version": "1.0",
+  "intent_type": "draft_requirement",
+  "requirement_type": "unspecified",
+  "requirement_text": null,
+  "clarification_needed": true,
+  "clarification_question": "What should the brakes do, and under what conditions?"
+}
+
+EXAMPLE (unsupported):
+
+User request: "Write Python code to sort a list."
+
+Expected JSON:
+
+{
+  "schema_version": "1.0",
+  "intent_type": "unsupported",
+  "requirement_type": "unspecified",
+  "requirement_text": null,
+  "clarification_needed": false,
+  "clarification_question": null
+}
 """
 
 
-def build_messages(user_request: str) -> list[dict[str, str]]:
+def build_messages(
+    user_request: str,
+    history: list[dict[str, str]] | None = None,
+) -> list[dict[str, str]]:
     """
     Build the chat messages sent to the LLM.
+
+    history holds earlier user/assistant messages (oldest first)
+    so the model can use the previous conversation as context.
     """
 
     if not isinstance(user_request, str) or not user_request.strip():
@@ -82,6 +135,7 @@ def build_messages(user_request: str) -> list[dict[str, str]]:
             "role": "system",
             "content": SYSTEM_PROMPT
         },
+        *(history or []),
         {
             "role": "user",
             "content": user_request.strip()
