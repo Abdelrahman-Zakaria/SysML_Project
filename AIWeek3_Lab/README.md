@@ -1,6 +1,6 @@
 # AIWeek3 Lab
 
-This lab extends the Week 2 intent classifier into a small, inspectable agent.
+This lab implements a small, inspectable agent for SysML elevator inspection.
 The model may propose one typed tool call, but ordinary Python code validates
 the tool name and arguments and executes the tool against deterministic local
 elevator data.
@@ -27,19 +27,27 @@ Available tools:
 
 ## Setup
 
-Use the existing Week 2 environment and dependencies:
+Week 3 has its own virtual environment and dependencies:
 
 ```powershell
-..\AIWeek2_Lab\venv\Scripts\python.exe -m pytest -q
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-For an optional live run, copy the Week 2 `.env` values into this lab's
-environment. Reuse the same `BASE_URL`, `GEMINI_API_KEY`, and `MODEL_ID`; do not
-commit `.env` or an API key. Offline tests do not require an API key.
+For an optional live run, create `.env` from `.env.example` and set your own
+provider URL, API key, and model ID. Do not commit `.env` or an API key.
+Offline tests do not require an API key.
 
 ```powershell
-Copy-Item ..\AIWeek2_Lab\.env .env
-..\AIWeek2_Lab\venv\Scripts\python.exe app.py
+Copy-Item .env.example .env
+.\venv\Scripts\python.exe app.py
+```
+
+Run tests with:
+
+```powershell
+.\venv\Scripts\python.exe -m pytest -q
 ```
 
 ## Exit-gate demonstrations
