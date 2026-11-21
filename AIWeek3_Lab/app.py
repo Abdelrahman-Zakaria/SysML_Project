@@ -1,3 +1,5 @@
+"""SysML v2 teaching agent with bounded tools and explicit observations."""
+
 import json
 import os
 import queue
@@ -11,13 +13,15 @@ from typing import Any, Literal
 
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 load_dotenv()
 
 MAX_CALLS = 3
 MAX_RUNTIME_SECONDS = 10.0
 
+# Stable local facts let students see that tool results come from Python data,
+# not from a model's unsupported claims.
 MODEL_ELEMENTS: dict[str, dict[str, str]] = {
     "ExamplePackage": {
         "kind": "package",
@@ -47,6 +51,8 @@ MODEL_ELEMENTS: dict[str, dict[str, str]] = {
 }
 
 
+# Pydantic schemas define the exact inputs each tool accepts. They also provide
+# JSON schemas that are shown to the model before it selects a tool.
 class ListAvailableItemsArgs(BaseModel):
     kind: Literal[
         "all", "package", "part_definition", "requirement_definition", "action_definition"
@@ -69,7 +75,7 @@ class CheckConditionArgs(BaseModel):
 
 class ProposeRequirementArgs(BaseModel):
     requirement_id: str = Field(
-        pattern=r"^AIW3-(?!000)[0-9]{3}$",
+        pattern=r"^AIW3-[0-9]{3}$",
         description="A new candidate ID in the AIW3-001 through AIW3-999 format.",
     )
     statement: str = Field(
@@ -78,7 +84,17 @@ class ProposeRequirementArgs(BaseModel):
         description="A concise SysML requirement statement beginning 'The system shall'.",
     )
 
+    @field_validator("requirement_id")
+    @classmethod
+    def reject_zero_requirement_id(cls, value: str) -> str:
+        """Keep the pattern portable and disallow the reserved AIW3-000 ID."""
+        if value == "AIW3-000":
+            raise ValueError("The requirement ID range starts at AIW3-001.")
+        return value
 
+
+# The model returns this decision shape. The agent validates it before looking
+# up or executing the requested tool.
 class ToolCall(BaseModel):
     tool_name: str = Field(min_length=1, max_length=80)
     arguments: dict[str, Any] = Field(default_factory=dict)
@@ -103,6 +119,8 @@ class ModelOutputError(ValueError):
     """The provider returned an empty or structurally invalid decision."""
 
 
+# AgentEvent is the observable run log: it stores messages and actions, never
+# hidden reasoning from the model.
 class AgentEvent(BaseModel):
     kind: Literal[
         "user_message", "assistant_decision", "tool_call", "tool_result",
@@ -116,6 +134,8 @@ class AgentEvent(BaseModel):
 
 
 class ToolObservation(BaseModel):
+    """Typed result of one tool, including arguments and any explicit error."""
+
     tool_name: str
     arguments: dict[str, Any] = Field(default_factory=dict)
     success: bool
@@ -126,6 +146,8 @@ class ToolObservation(BaseModel):
 
 
 class AgentResult(BaseModel):
+    """Final outcome plus observations, event trace, and model usage metadata."""
+
     status: Literal[
         "success", "no_evidence", "rejected", "tool_error", "limit_exceeded",
         "requires_review", "cancelled",
@@ -154,6 +176,7 @@ class ToolDefinition:
 
 
 def list_available_items(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
+    """Return IDs from the local catalog, filtered by element kind."""
     args = ListAvailableItemsArgs.model_validate(arguments)
     items = [
         item_id
@@ -164,6 +187,7 @@ def list_available_items(arguments: BaseModel, timeout_seconds: float) -> dict[s
 
 
 def get_metadata(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
+    """Return catalog facts or raise when the requested ID has no evidence."""
     args = GetMetadataArgs.model_validate(arguments)
     if args.item_id in MODEL_ELEMENTS:
         return {"item_id": args.item_id, **MODEL_ELEMENTS[args.item_id]}
@@ -171,6 +195,7 @@ def get_metadata(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]
 
 
 def check_condition(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
+    """Evaluate one supported condition using the local catalog only."""
     args = CheckConditionArgs.model_validate(arguments)
     if args.item_id not in MODEL_ELEMENTS:
         raise LookupError(f"No local evidence exists for item '{args.item_id}'.")
@@ -185,7 +210,7 @@ def check_condition(arguments: BaseModel, timeout_seconds: float) -> dict[str, A
 
 
 def validate_with_official_sysml_kernel(candidate: str, timeout_seconds: float) -> None:
-    """Validate SysML text with the OMG SysML v2 Pilot Implementation kernel."""
+    """Send candidate text to the official local kernel and require success."""
     try:
         from jupyter_client import KernelManager
     except ImportError as error:
@@ -194,6 +219,7 @@ def validate_with_official_sysml_kernel(candidate: str, timeout_seconds: float) 
             "the official SysML kernel."
         ) from error
 
+    # Share the agent's remaining budget across kernel startup and validation.
     deadline = time.monotonic() + timeout_seconds
     manager = KernelManager(kernel_name="sysml")
     client = None
@@ -206,6 +232,8 @@ def validate_with_official_sysml_kernel(candidate: str, timeout_seconds: float) 
             raise TimeoutError("The SysML validator exceeded the remaining time budget.")
         client.wait_for_ready(timeout=remaining)
 
+        # Jupyter returns a message ID so output and errors can be tied to this
+        # exact candidate execution.
         message_id = client.execute(
             candidate,
             store_history=False,
@@ -275,7 +303,7 @@ def validate_with_official_sysml_kernel(candidate: str, timeout_seconds: float) 
 
 
 def propose_requirement(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
-    """Build a typed candidate and send it to a configured official validator."""
+    """Build a typed candidate, validate it, and leave model changes to a person."""
     args = ProposeRequirementArgs.model_validate(arguments)
     if not args.statement.startswith("The system shall "):
         raise ValueError("A proposal must be a requirement beginning 'The system shall'.")
@@ -283,6 +311,7 @@ def propose_requirement(arguments: BaseModel, timeout_seconds: float) -> dict[st
         raise ValueError("A proposal must be one plain-text sentence without comment delimiters.")
     validator = os.getenv("SYSML_VALIDATOR")
 
+    # Construct only the small SysML operation allowed by the typed schema.
     candidate = (
         "package AIWeek3Candidate {\n"
         f"    requirement def <'{args.requirement_id}'> ProposedRequirement {{\n"
@@ -291,6 +320,8 @@ def propose_requirement(arguments: BaseModel, timeout_seconds: float) -> dict[st
         "}\n"
     )
     if validator:
+        # A configured wrapper receives a temporary .sysml file. With the
+        # setting blank, the official Pilot Implementation kernel gets text.
         with tempfile.TemporaryDirectory(prefix="aiweek3_sysml_") as tmp_dir:
             candidate_path = Path(tmp_dir) / "candidate.sysml"
             candidate_path.write_text(candidate, encoding="utf-8")
@@ -347,6 +378,7 @@ TOOLS = {
 
 
 def execute_tool(call: ToolCall, timeout_seconds: float = MAX_RUNTIME_SECONDS) -> ToolObservation:
+    """Allow-list, validate, execute, and convert failures into typed results."""
     definition = TOOLS.get(call.tool_name)
     if definition is None:
         return ToolObservation(
@@ -398,6 +430,7 @@ DecisionProvider = Callable[[list[dict[str, Any]], float], Any]
 
 
 def record_token_usage(target: dict[str, Any], decision: ModelDecision) -> None:
+    """Accumulate provider-reported counts without estimating missing values."""
     usage = decision.token_usage
     call_usage = {
         "model_id": decision.model_id,
@@ -428,6 +461,7 @@ def run_agent(
     max_calls: int = MAX_CALLS,
     max_runtime_seconds: float = MAX_RUNTIME_SECONDS,
 ) -> AgentResult:
+    """Run the inspectable request/decision/validate/execute/observe loop."""
     token_usage: dict[str, Any] = {
         "available": False,
         "prompt_tokens": None,
@@ -438,6 +472,7 @@ def run_agent(
     events: list[AgentEvent] = [AgentEvent(kind="user_message", content=request)]
 
     def result(status: str, message: str, result_observations=None) -> AgentResult:
+        # Every exit records a final answer/status alongside the events so far.
         events.append(
             AgentEvent(
                 kind="assistant_final",
@@ -459,6 +494,8 @@ def run_agent(
         return result("rejected", "Agent limits must be positive.")
 
     started = time.monotonic()
+    # This is standard chat history. Each function call below is paired with a
+    # tool result using the same call ID, so the next decision sees both.
     history: list[dict[str, Any]] = [{"role": "user", "content": request}]
     observations: list[ToolObservation] = []
 
@@ -466,6 +503,7 @@ def run_agent(
         remaining = max_runtime_seconds - (time.monotonic() - started)
         if remaining <= 0:
             return result("limit_exceeded", "The agent runtime limit was reached.", observations)
+        # Ask for one decision, passing only the runtime budget that remains.
         try:
             proposed = decision_provider(history, remaining)
         except KeyboardInterrupt:
@@ -488,6 +526,7 @@ def run_agent(
                 observations,
             )
 
+        # Keep token accounting separate from the actual tool-call payload.
         if isinstance(proposed, ModelDecision):
             record_token_usage(token_usage, proposed)
             proposed = proposed.tool_call
@@ -519,6 +558,8 @@ def run_agent(
 
         remaining = max_runtime_seconds - (time.monotonic() - started)
         call_id = f"call_{len(observations) + 1}"
+        # Log the visible decision and send the matching assistant function-call
+        # message before executing it. Invalid tool arguments are still logged.
         events.append(
             AgentEvent(
                 kind="tool_call",
@@ -554,6 +595,8 @@ def run_agent(
                 )
             )
             return result("cancelled", "The agent run was cancelled during tool execution.", observations)
+        # Record both the typed observation and the matching tool message. The
+        # model can use this evidence on a later turn if it needs another call.
         observations.append(observation)
         observation_data = observation.model_dump()
         events.append(
@@ -604,6 +647,7 @@ def run_agent(
 
 
 def tool_catalog_for_model() -> list[dict[str, Any]]:
+    """Expose tool names, descriptions, and argument schemas to the model."""
     return [
         {
             "name": name,
@@ -615,6 +659,7 @@ def tool_catalog_for_model() -> list[dict[str, Any]]:
 
 
 def _reported_token_count(usage: Any, field: str) -> int | None:
+    """Read a non-negative count when the provider includes it in its reply."""
     if isinstance(usage, dict):
         value = usage.get(field)
     else:
@@ -628,6 +673,7 @@ def get_model_decision(
     history: list[dict[str, Any]],
     timeout_seconds: float,
 ) -> ModelDecision:
+    """Call the configured chat endpoint and parse its structured decision."""
     base_url = os.getenv("BASE_URL")
     api_key = os.getenv("API_KEY")
     model_id = os.getenv("MODEL_ID")
@@ -685,6 +731,7 @@ def _display_token_count(value: int | None) -> str:
 
 
 def format_console_result(result: AgentResult) -> str:
+    """Render the structured result as a readable summary instead of raw JSON."""
     lines = ["=== Agent result ===", f"Status: {result.status.replace('_', ' ').upper()}", result.message]
 
     for observation in result.observations:

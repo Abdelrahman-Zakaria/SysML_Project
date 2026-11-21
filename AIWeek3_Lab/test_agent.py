@@ -1,3 +1,5 @@
+"""Offline checks for deterministic tools, agent control, and validator paths."""
+
 import subprocess
 
 from app import (
@@ -15,6 +17,8 @@ from app import (
 )
 
 
+# Tool contract: successful results come from the local catalog; invalid names,
+# arguments, and unsupported IDs must produce explicit non-success outcomes.
 def test_success_uses_deterministic_evidence():
     result = run_agent(
         "What is ExamplePart?",
@@ -61,6 +65,7 @@ def test_model_cannot_turn_unsupported_data_into_success():
     assert result.message != "The result is supported by deterministic local evidence."
 
 
+# Agent control: enforce call/time limits and turn provider failures into results.
 def test_call_limit_is_enforced():
     def repeated_call(history, timeout):
         return ToolCall(tool_name="list_available_items", arguments={}, final=False)
@@ -117,6 +122,7 @@ def test_provider_receives_remaining_time_budget():
     assert 0 < received[0] <= 1.0
 
 
+# Model metadata: provider-reported token counts are retained and summed.
 def test_token_usage_is_aggregated_in_result_metadata():
     decisions = iter(
         [
@@ -196,6 +202,7 @@ def test_tool_exception_is_reported_as_tool_error(monkeypatch):
     assert "broken tool" in observation.error_message
 
 
+# SysML proposal path: use a mocked validator here so tests need no Java kernel.
 def test_requirement_proposal_is_checked_and_requires_review(monkeypatch):
     monkeypatch.setenv("SYSML_VALIDATOR", "sysml-validator-test")
     observed_candidate = {}
@@ -267,6 +274,7 @@ def test_rejected_sysml_candidate_is_not_success(monkeypatch):
     assert "syntax error" in observation.error_message
 
 
+# Human control: ambiguity, cancellation, and tool descriptions are observable.
 def test_ambiguous_request_returns_clarification():
     result = run_agent(
         "Check it",
