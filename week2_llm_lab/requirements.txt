@@ -1,6 +1,9 @@
+# Runtime
+huggingface_hub==2.4.0
+httpx2==2.16.2        # imported directly in reliability.py (also a huggingface_hub dependency)
+pydantic==2.14.3
+python-dotenv==1.2.4
+requests==2.34.2      # only used by app.py (Week 1 example)
 
-requests
-pytest
-pydantic
-huggingface_hub
-python-dotenv
+# Tests
+pytest==9.2.0

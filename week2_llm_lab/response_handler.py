@@ -26,9 +26,23 @@ def parse_and_validate(raw_response: str) -> Intent:
 
     # Step 2: Validate the parsed data.
     try:
-        return Intent.model_validate(data)
+        intent = Intent.model_validate(data)
 
     except ValidationError as exc:
         raise ValueError(
             "The LLM response does not match the Intent schema."
         ) from exc
+
+    # Step 3: A drafted requirement must contain text unless the
+    # model is asking a clarification question instead.
+    if (
+        intent.intent_type == "draft_requirement"
+        and intent.requirement_text is None
+        and not intent.clarification_needed
+    ):
+        raise ValueError(
+            "The LLM response does not match the Intent schema: "
+            "draft_requirement has no requirement_text."
+        )
+
+    return intent
