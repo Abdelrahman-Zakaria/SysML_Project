@@ -1,4 +1,8 @@
-"""SysML v2 teaching agent with bounded tools and explicit observations."""
+"""SysML v2 teaching agent with bounded tools and explicit observations.
+
+The file is organized from data and schemas, through tools and the agent loop,
+to the provider integration and user-facing output.
+"""
 
 import json
 import os
@@ -19,6 +23,10 @@ load_dotenv()
 
 MAX_CALLS = 3
 MAX_RUNTIME_SECONDS = 300.0
+
+# ---------------------------------------------------------------------------
+# Example catalog and validated data shapes
+# ---------------------------------------------------------------------------
 
 # Stable local facts let students see that tool results come from Python data,
 # not from a model's unsupported claims.
@@ -170,9 +178,14 @@ class AgentResult(BaseModel):
 
 @dataclass(frozen=True)
 class ToolDefinition:
+    """Pair a model-visible tool description and schema with its Python handler."""
+
     description: str
     argument_model: type[BaseModel]
     handler: Callable[[BaseModel, float], dict[str, Any]]
+
+
+"""Deterministic tools: these read the local example catalog only."""
 
 
 def list_available_items(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
@@ -208,6 +221,10 @@ def check_condition(arguments: BaseModel, timeout_seconds: float) -> dict[str, A
         value = item["kind"].endswith("_definition")
     return {"item_id": args.item_id, "condition": args.condition, "value": value}
 
+
+# ---------------------------------------------------------------------------
+# Official SysML validator and requirement proposal tool
+# ---------------------------------------------------------------------------
 
 def validate_with_official_sysml_kernel(candidate: str, timeout_seconds: float) -> None:
     """Send candidate text to the official local kernel and require success."""
@@ -353,6 +370,7 @@ def propose_requirement(arguments: BaseModel, timeout_seconds: float) -> dict[st
     }
 
 
+# The allow-list is the only route from a model decision to executable code.
 TOOLS = {
     "list_available_items": ToolDefinition(
         "List available generic SysML v2 example packages, part definitions, requirement definitions, or action definitions.",
@@ -429,6 +447,9 @@ def execute_tool(call: ToolCall, timeout_seconds: float = MAX_RUNTIME_SECONDS) -
 DecisionProvider = Callable[[list[dict[str, Any]], float], Any]
 
 
+"""Agent orchestration: validate each decision and retain observable results."""
+
+
 def record_token_usage(target: dict[str, Any], decision: ModelDecision) -> None:
     """Accumulate provider-reported counts without estimating missing values."""
     usage = decision.token_usage
@@ -472,6 +493,7 @@ def run_agent(
     events: list[AgentEvent] = [AgentEvent(kind="user_message", content=request)]
 
     def result(status: str, message: str, result_observations=None) -> AgentResult:
+        """Build a final result and append its matching event to the trace."""
         # Every exit records a final answer/status alongside the events so far.
         events.append(
             AgentEvent(
@@ -637,6 +659,9 @@ def run_agent(
     return result("limit_exceeded", "The maximum number of tool calls was reached.", observations)
 
 
+"""Provider integration: send chat history and parse a typed decision."""
+
+
 def tool_catalog_for_model() -> list[dict[str, Any]]:
     """Expose tool names, descriptions, and argument schemas to the model."""
     return [
@@ -718,8 +743,13 @@ def get_model_decision(
 
 
 def _display_token_count(value: int | None) -> str:
+    """Format a provider token count, or mark it as unavailable."""
     return f"{value:,}" if value is not None else "not reported"
 
+
+# ---------------------------------------------------------------------------
+# Console rendering and command-line entry point
+# ---------------------------------------------------------------------------
 
 def format_console_result(result: AgentResult) -> str:
     """Render the structured result as a readable summary instead of raw JSON."""

@@ -292,10 +292,11 @@ reported by the provider.` Press `Ctrl+C` or send EOF at the prompt to cancel
 input; press `Ctrl+C` during a run to get a `CANCELLED` result.
 
 The automated tests use mocked model responses and validator calls, so they do
-not need a live API key or an installed SysML kernel. Run them with:
+not need a live API key or an installed SysML kernel. Run them with; pytest
+lists each test name and its `PASSED` or `FAILED` result:
 
 ```powershell
-.\venv\Scripts\python.exe -m pytest -q
+.\venv\Scripts\python.exe -m pytest
 ```
 
 ## Automated test coverage
