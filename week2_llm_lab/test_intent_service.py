@@ -20,6 +20,8 @@ VALID_RESPONSE = """
 
 
 def make_fake_response(content):
+    """Create a simulated LLM response."""
+
     return SimpleNamespace(
         choices=[
             SimpleNamespace(
@@ -29,13 +31,28 @@ def make_fake_response(content):
     )
 
 
+@pytest.fixture(autouse=True)
+def disable_metadata_file_writes(monkeypatch):
+    """
+    Prevent unit tests from writing actual usage logs.
+    """
+
+    monkeypatch.setattr(
+        "intent_service.save_run_metadata",
+        lambda metadata: None
+    )
+
+
+# Test 1: A valid response should produce a validated Intent.
 def test_generate_intent_returns_validated_object(monkeypatch):
+
     fake_response = make_fake_response(VALID_RESPONSE)
 
     def fake_generate_response(messages):
         assert len(messages) == 2
         assert messages[0]["role"] == "system"
         assert messages[1]["role"] == "user"
+
         return fake_response
 
     monkeypatch.setattr(
@@ -43,16 +60,22 @@ def test_generate_intent_returns_validated_object(monkeypatch):
         fake_generate_response
     )
 
-    intent, response = generate_intent(
+    intent, response, metadata = generate_intent(
         "Draft a functional elevator requirement."
     )
 
     assert isinstance(intent, Intent)
     assert intent.intent_type == "draft_requirement"
+    assert intent.requirement_type == "functional"
     assert response is fake_response
 
+    assert metadata["validation_status"] == "passed"
+    assert metadata["validation_error"] is None
 
+
+# Test 2: Empty response choices should be rejected.
 def test_empty_response_choices_are_rejected(monkeypatch):
+
     fake_response = SimpleNamespace(choices=[])
 
     monkeypatch.setattr(
@@ -64,7 +87,9 @@ def test_empty_response_choices_are_rejected(monkeypatch):
         generate_intent("Draft a requirement.")
 
 
+# Test 3: Empty response content should be rejected.
 def test_empty_response_content_is_rejected(monkeypatch):
+
     fake_response = make_fake_response("")
 
     monkeypatch.setattr(
@@ -76,7 +101,9 @@ def test_empty_response_content_is_rejected(monkeypatch):
         generate_intent("Draft a requirement.")
 
 
+# Test 4: Malformed JSON should be rejected.
 def test_malformed_json_is_rejected(monkeypatch):
+
     fake_response = make_fake_response("{invalid json}")
 
     monkeypatch.setattr(
@@ -88,7 +115,9 @@ def test_malformed_json_is_rejected(monkeypatch):
         generate_intent("Draft a requirement.")
 
 
+# Test 5: Invalid Intent schema should be rejected.
 def test_invalid_intent_schema_is_rejected(monkeypatch):
+
     invalid_response = VALID_RESPONSE.replace(
         '"draft_requirement"',
         '"delete_project"'
