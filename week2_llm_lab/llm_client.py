@@ -6,7 +6,7 @@ from huggingface_hub import InferenceClient
 
 from config import MODEL_ID, INFERENCE_PROVIDER, API_KEY_ENV_VAR
 from structured_output import build_response_format
-
+from reliability import call_with_retry
 
 ENV_FILE = Path(__file__).with_name(".env")
 load_dotenv(ENV_FILE)
@@ -38,10 +38,13 @@ def generate_response(messages: list[dict[str, str]]):
 
     client = create_client()
 
-    response = client.chat_completion(
+    response = call_with_retry(
+    lambda: client.chat_completion(
         messages=messages,
         response_format=build_response_format(),
         max_tokens=500
-    )
+    ),
+    max_attempts=3
+)
 
     return response
