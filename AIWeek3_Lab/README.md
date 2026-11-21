@@ -180,7 +180,122 @@ LLM token usage:
   Prompt: 85 | Completion: 13 | Total: 98 tokens
 ```
 
-## Rejection-path exercises
+## Example runs
+
+Run the command once for each example; the app handles one prompt per run. The
+startup help appears before each prompt. The model's explanatory sentence and
+token counts can vary, but tool names, evidence, and statuses should match the
+examples. Requirement proposal examples need Java 21+ and the official SysML v2
+kernel installed.
+
+### List and filter model elements
+
+```text
+What should I inspect? List all available model elements.
+=== Agent result ===
+Status: SUCCESS
+The result is supported by deterministic local evidence.
+
+Tool: list_available_items
+Arguments:
+  Kind: all
+  Limit: 20
+Evidence:
+  Items: ExamplePackage, ExamplePart, ExampleRequirement, ExampleAction
+  Kind: all
+
+LLM token usage:
+  Model: <configured-model>
+  Prompt: <provider count> | Completion: <provider count> | Total: <provider count> tokens
+```
+
+To filter the catalog, try `List the requirement definitions.` The tool should
+return only `ExampleRequirement` with kind `requirement_definition`.
+
+### Inspect metadata and check a condition
+
+```text
+What should I inspect? Does ExamplePackage have documentation?
+=== Agent result ===
+Status: SUCCESS
+The result is supported by deterministic local evidence.
+
+Tool: check_condition
+Arguments:
+  Item id: ExamplePackage
+  Condition: has_documentation
+Evidence:
+  Item id: ExamplePackage
+  Condition: has_documentation
+  Value: Yes
+
+LLM token usage:
+  Model: <configured-model>
+  Prompt: <provider count> | Completion: <provider count> | Total: <provider count> tokens
+```
+
+For metadata, enter `What kind of element is ExampleRequirement?`. The result
+includes its `RequirementDefinition` metaclass, description, statement, and
+documentation. Try `Inspect UnknownElement.` to see the `NO EVIDENCE` response;
+the agent reports the missing catalog entry instead of making up metadata.
+
+### Propose and validate a requirement
+
+```text
+What should I inspect? Propose a requirement that the system shall support a new operating mode.
+=== Agent result ===
+Status: REQUIRES REVIEW
+The candidate passed validation and is awaiting human review; it was not applied.
+
+Tool: propose_requirement
+Arguments:
+  Requirement id: AIW3-001
+  Statement: The system shall support a new operating mode.
+Evidence:
+  Requirement id: AIW3-001
+  Candidate sysml: package AIWeek3Candidate {
+        requirement def <'AIW3-001'> ProposedRequirement {
+            doc /* The system shall support a new operating mode. */
+        }
+    }
+  Validator: OMG SysML v2 Pilot Implementation
+  Validator result: passed
+  Applied to model: No
+  Human review: required
+
+LLM token usage:
+  Model: <configured-model>
+  Prompt: <provider count> | Completion: <provider count> | Total: <provider count> tokens
+```
+
+If the kernel is unavailable or rejects the candidate, the result is
+`TOOL ERROR`; it is never reported as validated. Invalid IDs (for example,
+`AIW3-000`) and statements that do not start with `The system shall ` are
+rejected before validation.
+
+### Provider metadata and safe cancellation
+
+For a live provider response with token metadata, each run ends with a readable
+usage section like this (the provider supplies the values):
+
+```text
+LLM token usage:
+  Model: <configured-model>
+  Prompt: 85 | Completion: 13 | Total: 98 tokens
+```
+
+If the provider omits token metadata, the app prints `Token counts were not
+reported by the provider.` Press `Ctrl+C` or send EOF at the prompt to cancel
+input; press `Ctrl+C` during a run to get a `CANCELLED` result.
+
+The automated tests use mocked model responses and validator calls, so they do
+not need a live API key or an installed SysML kernel. Run them with:
+
+```powershell
+.\venv\Scripts\python.exe -m pytest -q
+```
+
+## Automated test coverage
 
 The tests cover successful deterministic inspection, fabricated tool names,
 invalid arguments, missing evidence, fabricated unsupported claims, malformed
@@ -188,9 +303,3 @@ model output, provider and tool exceptions, runtime and call limits, ambiguous
 requests, cancellation, unavailable official kernel, validator rejection,
 token-usage metadata aggregation, and a validated proposal awaiting human
 review.
-
-Run the tests with:
-
-```powershell
-.\venv\Scripts\python.exe -m pytest -q
-```

@@ -5,7 +5,17 @@ if (-not $javaCommand) {
     throw "Java 21 or newer is required. Install Java 21+ and run this script again."
 }
 
-$javaVersionOutput = (& java -version 2>&1 | Out-String)
+$javaInfo = [System.Diagnostics.ProcessStartInfo]::new()
+$javaInfo.FileName = $javaCommand.Source
+$javaInfo.Arguments = "-version"
+$javaInfo.UseShellExecute = $false
+$javaInfo.RedirectStandardError = $true
+$javaInfo.RedirectStandardOutput = $true
+$javaProcess = [System.Diagnostics.Process]::Start($javaInfo)
+$javaStdout = $javaProcess.StandardOutput.ReadToEnd()
+$javaStderr = $javaProcess.StandardError.ReadToEnd()
+$javaProcess.WaitForExit()
+$javaVersionOutput = "$javaStdout`n$javaStderr"
 if ($javaVersionOutput -match '(?:version\s+"?|openjdk\s+)(?<major>\d+)') {
     if ([int]$Matches.major -lt 21) {
         throw "Java 21 or newer is required. Detected Java $($Matches.major)."
@@ -27,7 +37,7 @@ $release = Invoke-RestMethod `
     -Uri "https://api.github.com/repos/Systems-Modeling/SysML-v2-Pilot-Implementation/releases/latest" `
     -Headers @{ "User-Agent" = "AIWeek3-SysML-kernel-setup" }
 $kernelAsset = $release.assets |
-    Where-Object { $_.name -match '^sysml-jupyter-kernel-.*\.zip$' } |
+    Where-Object { $_.name -match '^(?:jupyter-sysml-kernel|sysml-jupyter-kernel)-.*\.zip$' } |
     Select-Object -First 1
 if (-not $kernelAsset) {
     throw "The latest official release did not include a sysml-jupyter-kernel ZIP asset."
@@ -46,6 +56,17 @@ $installer = Get-ChildItem -LiteralPath $extractDirectory -Filter "install.py" -
 if (-not $installer) {
     throw "The official kernel archive did not contain install.py."
 }
+
+# Python 3.14 validates percent signs in argparse help strings more strictly.
+# Escape the official installer's SysML magic-command examples for help formatting.
+$installerText = [System.IO.File]::ReadAllText($installer.FullName)
+$installerText = $installerText.Replace("%publish magic command", "%%publish magic command")
+$installerText = $installerText.Replace("%viz magic command", "%%viz magic command")
+[System.IO.File]::WriteAllText(
+    $installer.FullName,
+    $installerText,
+    [System.Text.UTF8Encoding]::new($false)
+)
 
 & $pythonPath $installer.FullName --sys-prefix
 if ($LASTEXITCODE -ne 0) {
