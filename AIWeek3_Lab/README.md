@@ -106,8 +106,9 @@ Each result also includes observations with the tool name and either evidence
 or a specific error, plus the arguments that were attempted or validated. The
 ordered `events` trace records the user message, each tool call and its
 arguments, each tool result/error, and the final answer. The model history also
-receives tool calls as assistant function-call messages and results as matching
-tool messages. The trace records observable actions only; it does not store
+receives each tool decision with its arguments and the matching result as
+ordinary chat messages, compatible with Gemini's signature requirements. The
+trace records observable actions only; it does not store
 hidden chain-of-thought. Token usage is printed separately in a readable
 section; the structured values remain in `metadata.llm_token_usage` for
 programmatic use.

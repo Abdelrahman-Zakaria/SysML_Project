@@ -557,9 +557,10 @@ def run_agent(
             )
 
         remaining = max_runtime_seconds - (time.monotonic() - started)
-        call_id = f"call_{len(observations) + 1}"
-        # Log the visible decision and send the matching assistant function-call
-        # message before executing it. Invalid tool arguments are still logged.
+        # Keep the model's decision and arguments in the conversation history.
+        # They are plain chat messages rather than synthetic OpenAI tool-call
+        # messages, since Gemini requires provider-generated thought signatures
+        # when native function-call messages are replayed.
         events.append(
             AgentEvent(
                 kind="tool_call",
@@ -571,16 +572,7 @@ def run_agent(
         history.append(
             {
                 "role": "assistant",
-                "tool_calls": [
-                    {
-                        "id": call_id,
-                        "type": "function",
-                        "function": {
-                            "name": call.tool_name,
-                            "arguments": json.dumps(call.arguments),
-                        },
-                    }
-                ],
+                "content": "Tool decision: " + json.dumps(call.model_dump()),
             }
         )
         try:
@@ -595,8 +587,8 @@ def run_agent(
                 )
             )
             return result("cancelled", "The agent run was cancelled during tool execution.", observations)
-        # Record both the typed observation and the matching tool message. The
-        # model can use this evidence on a later turn if it needs another call.
+        # The result stays in history for follow-up decisions without requiring
+        # a provider-specific tool-call signature.
         observations.append(observation)
         observation_data = observation.model_dump()
         events.append(
@@ -609,9 +601,8 @@ def run_agent(
         )
         history.append(
             {
-                "role": "tool",
-                "tool_call_id": call_id,
-                "content": json.dumps(observation_data),
+                "role": "user",
+                "content": "Tool result: " + json.dumps(observation_data),
             }
         )
         if time.monotonic() - started >= max_runtime_seconds:
