@@ -419,10 +419,16 @@ if __name__ == "__main__":
 
     nvidia_model = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3.5-super-vl-120b-a12b")
     planner = NvidiaPlanner(model=nvidia_model, api_key=nvidia_key)
-    agent = SafeAgent(planner)
+    agent = SafeAgent(planner, max_calls=12)
 
     prompt = input("What should I inspect or propose in the elevator model? ")
-    print(json.dumps(agent.run(prompt), indent=2))
+    result = agent.run(prompt)
+
+    print("\n--- Final Natural Language Answer ---")
+    print(result.get("answer") or f"Stopped early: {result.get('reason')}")
+
+    print("\n--- Full Debug JSON ---")
+    print(json.dumps(result, indent=2))
 
     print("\n--- Token Usage ---")
     print(json.dumps(planner.token_log, indent=2))
