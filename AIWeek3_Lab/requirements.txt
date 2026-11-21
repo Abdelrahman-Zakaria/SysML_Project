@@ -1,5 +1,5 @@
 annotated-types==0.8.0
-huggingface_hub==2.4.0
+openai>=1.0,<3.0
 jupyter_client==8.10.0
 pydantic==2.14.2
 pytest==9.2.0

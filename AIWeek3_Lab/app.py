@@ -12,13 +12,13 @@ from pathlib import Path
 from typing import Any, Literal
 
 from dotenv import load_dotenv
-from huggingface_hub import InferenceClient
+from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 load_dotenv()
 
 MAX_CALLS = 3
-MAX_RUNTIME_SECONDS = 10.0
+MAX_RUNTIME_SECONDS = 300.0
 
 # Stable local facts let students see that tool results come from Python data,
 # not from a model's unsupported claims.
@@ -680,7 +680,7 @@ def get_model_decision(
     if not base_url or not api_key or not model_id:
         raise ValueError("BASE_URL, API_KEY, and MODEL_ID are required.")
 
-    client = InferenceClient(
+    client = OpenAI(
         base_url=base_url,
         api_key=api_key,
         timeout=timeout_seconds,
@@ -694,7 +694,7 @@ def get_model_decision(
         "Requirement proposals are candidates only and require human review. Tool catalog: "
         + json.dumps(tool_catalog_for_model())
     )
-    response = client.chat_completion(
+    response = client.chat.completions.create(
         model=model_id,
         messages=[{"role": "system", "content": system_prompt}, *history],
         max_tokens=500,

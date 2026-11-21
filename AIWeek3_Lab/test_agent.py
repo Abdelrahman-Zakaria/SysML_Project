@@ -174,13 +174,19 @@ def test_model_response_usage_metadata_is_preserved(monkeypatch):
         def __init__(self, **kwargs):
             self.timeout = kwargs["timeout"]
 
-        def chat_completion(self, **kwargs):
-            return response
+        class Chat:
+            class Completions:
+                def create(self, **kwargs):
+                    return response
+
+            completions = Completions()
+
+        chat = Chat()
 
     monkeypatch.setenv("BASE_URL", "https://example.invalid/v1")
     monkeypatch.setenv("API_KEY", "test-key")
     monkeypatch.setenv("MODEL_ID", "configured-model")
-    monkeypatch.setattr("app.InferenceClient", FakeClient)
+    monkeypatch.setattr("app.OpenAI", FakeClient)
     decision = get_model_decision([{"role": "user", "content": "inspect"}], 0.5)
     assert decision.model_id == "demo-model"
     assert decision.token_usage.prompt_tokens == 17

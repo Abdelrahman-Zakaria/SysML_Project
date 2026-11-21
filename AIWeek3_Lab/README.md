@@ -14,9 +14,11 @@ engineering evidence.
 4. Execute the matching deterministic tool or configured SysML validator.
 5. Return evidence, rejection, missing evidence, timeout, or tool failure.
 
-The default limits are three model/tool calls and ten seconds total runtime.
+The default limits are three model/tool calls and 300 seconds total runtime.
+This gives slow model endpoints and the local Java-based SysML kernel time to
+respond and validate a proposal.
 The remaining time is passed to the decision provider; the live provider uses
-that value as the `InferenceClient` timeout. The configured validator also gets
+that value as the OpenAI-compatible client timeout. The configured validator also gets
 only the remaining time. Provider exceptions and tool exceptions become
 non-success results. Ctrl+C or EOF during input and Ctrl+C during a run are
 reported as cancellation.
