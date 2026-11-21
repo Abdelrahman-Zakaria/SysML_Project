@@ -6,11 +6,12 @@ MODEL_PATH = Path(__file__).parent / "sysml_model.json"
 
 
 def load_model(path: Path = MODEL_PATH) -> dict:
-    """Reads the local JSON SysML model into a Python dictionary."""
+    """Loads the SysML model JSON file from disk."""
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
+# Input validation schemas
 class ElementIdInput(BaseModel):
     element_id: str = Field(..., pattern=r"^(REQ|BLK)-\d{3}$")
 
@@ -20,14 +21,18 @@ class CheckMassInput(BaseModel):
     proposed_mass_kg: float = Field(..., gt=0)
 
 
+# Deterministic tools
 def list_elements() -> dict:
     """Returns all valid element IDs in the SysML model."""
     model = load_model()
-    return {"status": "ok", "elements": list(model.keys())}
+    return {
+        "status": "ok",
+        "elements": list(model.keys()),
+    }
 
 
 def get_element_details(args: ElementIdInput) -> dict:
-    """Fetches metadata for one element by ID, or returns NOT_FOUND."""
+    """Fetches details for a single SysML element by ID."""
     model = load_model()
     item = model.get(args.element_id)
 
@@ -38,11 +43,15 @@ def get_element_details(args: ElementIdInput) -> dict:
             "message": f"Element '{args.element_id}' does not exist in the model.",
         }
 
-    return {"status": "ok", "element_id": args.element_id, "data": item}
+    return {
+        "status": "ok",
+        "element_id": args.element_id,
+        "data": item,
+    }
 
 
 def validate_operation(args: CheckMassInput) -> dict:
-    """Checks if a proposed block mass satisfies requirement REQ-101."""
+    """Validates whether a proposed block mass satisfies requirement REQ-101."""
     model = load_model()
 
     block = model.get(args.target_id)
@@ -73,6 +82,7 @@ def validate_operation(args: CheckMassInput) -> dict:
     }
 
 
+# Allowlisted tools mapped to (input_schema, handler_function)
 ALLOWED_TOOLS = {
     "list_elements": (None, list_elements),
     "get_element_details": (ElementIdInput, get_element_details),
@@ -81,7 +91,7 @@ ALLOWED_TOOLS = {
 
 
 def dispatch_tool(tool_name: str, raw_args: dict) -> dict:
-    """Validates tool name and arguments before running any local function."""
+    """Validates tool name and arguments against schemas before execution."""
     if tool_name not in ALLOWED_TOOLS:
         return {
             "status": "error",

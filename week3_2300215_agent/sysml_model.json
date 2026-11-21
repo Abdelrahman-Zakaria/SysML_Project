@@ -1,0 +1,12 @@
+{
+  "REQ-101": {
+    "type": "Requirement",
+    "description": "Battery mass must not exceed 50 kg.",
+    "max_mass_kg": 50.0
+  },
+  "BLK-204": {
+    "type": "Block",
+    "name": "BatteryPack",
+    "mass_kg": 32.0
+  }
+}
