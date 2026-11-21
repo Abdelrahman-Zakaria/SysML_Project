@@ -1,5 +1,6 @@
 import json
 import os
+import queue
 import subprocess
 import tempfile
 import time
@@ -17,40 +18,40 @@ load_dotenv()
 MAX_CALLS = 3
 MAX_RUNTIME_SECONDS = 10.0
 
-COMPONENTS: dict[str, dict[str, str]] = {
-    "controller": {
-        "kind": "part",
-        "description": "Schedules requests and coordinates elevator movement.",
-        "requirement": "FR-01",
+MODEL_ELEMENTS: dict[str, dict[str, str]] = {
+    "ExamplePackage": {
+        "kind": "package",
+        "metaclass": "Package",
+        "description": "A package that groups related SysML v2 model elements.",
+        "documentation": "Example container for the other sample elements.",
     },
-    "motor_subsystem": {
-        "kind": "part",
-        "description": "Moves the elevator car between floors.",
-        "requirement": "FR-03",
+    "ExamplePart": {
+        "kind": "part_definition",
+        "metaclass": "PartDefinition",
+        "description": "A reusable structural definition in a SysML v2 model.",
+        "documentation": "Illustrates a typed part definition.",
     },
-    "door_subsystem": {
-        "kind": "part",
-        "description": "Controls opening, closing, and obstruction handling.",
-        "requirement": "SR-01",
+    "ExampleRequirement": {
+        "kind": "requirement_definition",
+        "metaclass": "RequirementDefinition",
+        "description": "A requirement definition in a SysML v2 model.",
+        "statement": "The system shall satisfy the example requirement.",
+        "documentation": "Illustrates a requirement definition and its statement.",
     },
-    "safety_subsystem": {
-        "kind": "part",
-        "description": "Detects overloads and prevents unsafe motion.",
-        "requirement": "SR-03",
+    "ExampleAction": {
+        "kind": "action_definition",
+        "metaclass": "ActionDefinition",
+        "description": "A behavior definition in a SysML v2 model.",
+        "documentation": "Illustrates an action definition.",
     },
-}
-
-REQUIREMENTS = {
-    "FR-01": "The system shall accept floor requests.",
-    "FR-03": "The system shall transport passengers between floors.",
-    "SR-01": "The system shall detect door obstruction.",
-    "SR-03": "The system shall stop the elevator during a critical fault.",
 }
 
 
 class ListAvailableItemsArgs(BaseModel):
-    kind: Literal["part", "requirement"] = Field(
-        default="part", description="Whether to list parts or requirements."
+    kind: Literal[
+        "all", "package", "part_definition", "requirement_definition", "action_definition"
+    ] = Field(
+        default="all", description="Which kind of SysML v2 model element to list."
     )
     limit: int = Field(default=20, ge=1, le=50, description="Maximum results.")
 
@@ -60,15 +61,15 @@ class GetMetadataArgs(BaseModel):
 
 
 class CheckConditionArgs(BaseModel):
-    item_id: str = Field(min_length=1, max_length=80, description="Known part ID.")
-    condition: Literal["exists", "has_requirement", "safe_for_motion"] = Field(
-        description="The deterministic condition to check."
+    item_id: str = Field(min_length=1, max_length=80, description="Known model element ID.")
+    condition: Literal["exists", "has_documentation", "is_definition"] = Field(
+        description="The structural or documentation condition to check."
     )
 
 
 class ProposeRequirementArgs(BaseModel):
     requirement_id: str = Field(
-        pattern=r"^AIW3-[0-9]{3}$",
+        pattern=r"^AIW3-(?!000)[0-9]{3}$",
         description="A new candidate ID in the AIW3-001 through AIW3-999 format.",
     )
     statement: str = Field(
@@ -140,34 +141,123 @@ class ToolDefinition:
 
 def list_available_items(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
     args = ListAvailableItemsArgs.model_validate(arguments)
-    source = COMPONENTS if args.kind == "part" else REQUIREMENTS
-    return {"items": list(source)[: args.limit], "kind": args.kind}
+    items = [
+        item_id
+        for item_id, item in MODEL_ELEMENTS.items()
+        if args.kind == "all" or item["kind"] == args.kind
+    ]
+    return {"items": items[: args.limit], "kind": args.kind}
 
 
 def get_metadata(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
     args = GetMetadataArgs.model_validate(arguments)
-    if args.item_id in COMPONENTS:
-        return {"item_id": args.item_id, **COMPONENTS[args.item_id]}
-    if args.item_id in REQUIREMENTS:
-        return {
-            "item_id": args.item_id,
-            "kind": "requirement",
-            "description": REQUIREMENTS[args.item_id],
-        }
+    if args.item_id in MODEL_ELEMENTS:
+        return {"item_id": args.item_id, **MODEL_ELEMENTS[args.item_id]}
     raise LookupError(f"No local evidence exists for item '{args.item_id}'.")
 
 
 def check_condition(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
     args = CheckConditionArgs.model_validate(arguments)
-    if args.item_id not in COMPONENTS:
+    if args.item_id not in MODEL_ELEMENTS:
         raise LookupError(f"No local evidence exists for item '{args.item_id}'.")
+    item = MODEL_ELEMENTS[args.item_id]
     if args.condition == "exists":
         value = True
-    elif args.condition == "has_requirement":
-        value = bool(COMPONENTS[args.item_id].get("requirement"))
+    elif args.condition == "has_documentation":
+        value = bool(item.get("documentation"))
     else:
-        value = args.item_id != "safety_subsystem"
+        value = item["kind"].endswith("_definition")
     return {"item_id": args.item_id, "condition": args.condition, "value": value}
+
+
+def validate_with_official_sysml_kernel(candidate: str, timeout_seconds: float) -> None:
+    """Validate SysML text with the OMG SysML v2 Pilot Implementation kernel."""
+    try:
+        from jupyter_client import KernelManager
+    except ImportError as error:
+        raise RuntimeError(
+            "jupyter_client is missing. Reinstall the AIWeek3 requirements and "
+            "the official SysML kernel."
+        ) from error
+
+    deadline = time.monotonic() + timeout_seconds
+    manager = KernelManager(kernel_name="sysml")
+    client = None
+    try:
+        manager.start_kernel()
+        client = manager.client()
+        client.start_channels()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("The SysML validator exceeded the remaining time budget.")
+        client.wait_for_ready(timeout=remaining)
+
+        message_id = client.execute(
+            candidate,
+            store_history=False,
+            allow_stdin=False,
+            stop_on_error=True,
+        )
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("The SysML validator exceeded the remaining time budget.")
+            try:
+                message = client.get_iopub_msg(timeout=remaining)
+            except queue.Empty as error:
+                raise TimeoutError(
+                    "The SysML validator exceeded the remaining time budget."
+                ) from error
+            if message.get("parent_header", {}).get("msg_id") != message_id:
+                continue
+            if message.get("msg_type") == "error":
+                details = message.get("content", {})
+                error_text = details.get("evalue") or "The SysML model was rejected."
+                raise ValueError(f"Official SysML validation failed: {error_text}")
+            if (
+                message.get("msg_type") == "status"
+                and message.get("content", {}).get("execution_state") == "idle"
+            ):
+                break
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("The SysML validator exceeded the remaining time budget.")
+        try:
+            reply = client.get_shell_msg(timeout=remaining)
+        except queue.Empty as error:
+            raise TimeoutError(
+                "The SysML validator exceeded the remaining time budget."
+            ) from error
+        while reply.get("parent_header", {}).get("msg_id") != message_id:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("The SysML validator exceeded the remaining time budget.")
+            try:
+                reply = client.get_shell_msg(timeout=remaining)
+            except queue.Empty as error:
+                raise TimeoutError(
+                    "The SysML validator exceeded the remaining time budget."
+                ) from error
+        content = reply.get("content", {})
+        if content.get("status") != "ok":
+            error_text = content.get("evalue") or "The SysML model was rejected."
+            raise ValueError(f"Official SysML validation failed: {error_text}")
+    except (TimeoutError, ValueError):
+        raise
+    except Exception as error:
+        raise RuntimeError(
+            "Could not run the official OMG SysML v2 Pilot Implementation kernel. "
+            "Install it with setup_official_sysml_kernel.ps1 and try again. "
+            f"Details: {error}"
+        ) from error
+    finally:
+        if client is not None:
+            client.stop_channels()
+        try:
+            manager.shutdown_kernel(now=True)
+        except Exception:
+            pass
 
 
 def propose_requirement(arguments: BaseModel, timeout_seconds: float) -> dict[str, Any]:
@@ -178,10 +268,6 @@ def propose_requirement(arguments: BaseModel, timeout_seconds: float) -> dict[st
     if "*/" in args.statement or "/*" in args.statement or "\n" in args.statement:
         raise ValueError("A proposal must be one plain-text sentence without comment delimiters.")
     validator = os.getenv("SYSML_VALIDATOR")
-    if not validator:
-        raise RuntimeError(
-            "SYSML_VALIDATOR is not configured; the candidate was not validated."
-        )
 
     candidate = (
         "package AIWeek3Candidate {\n"
@@ -190,28 +276,33 @@ def propose_requirement(arguments: BaseModel, timeout_seconds: float) -> dict[st
         "    }\n"
         "}\n"
     )
-    with tempfile.TemporaryDirectory(prefix="aiweek3_sysml_") as tmp_dir:
-        candidate_path = Path(tmp_dir) / "candidate.sysml"
-        candidate_path.write_text(candidate, encoding="utf-8")
-        try:
-            completed = subprocess.run(
-                [validator, str(candidate_path)],
-                capture_output=True,
-                text=True,
-                timeout=max(0.01, timeout_seconds),
-                check=False,
-            )
-        except subprocess.TimeoutExpired as error:
-            raise TimeoutError("The SysML validator exceeded the remaining time budget.") from error
-        except OSError as error:
-            raise RuntimeError(f"The configured SysML validator could not run: {error}") from error
-    if completed.returncode != 0:
-        detail = (completed.stderr or completed.stdout or "No diagnostic was returned.").strip()
-        raise ValueError(f"The SysML validator rejected the candidate: {detail[:500]}")
+    if validator:
+        with tempfile.TemporaryDirectory(prefix="aiweek3_sysml_") as tmp_dir:
+            candidate_path = Path(tmp_dir) / "candidate.sysml"
+            candidate_path.write_text(candidate, encoding="utf-8")
+            try:
+                completed = subprocess.run(
+                    [validator, str(candidate_path)],
+                    capture_output=True,
+                    text=True,
+                    timeout=max(0.01, timeout_seconds),
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as error:
+                raise TimeoutError("The SysML validator exceeded the remaining time budget.") from error
+            except OSError as error:
+                raise RuntimeError(f"The configured SysML validator could not run: {error}") from error
+        if completed.returncode != 0:
+            detail = (completed.stderr or completed.stdout or "No diagnostic was returned.").strip()
+            raise ValueError(f"The SysML validator rejected the candidate: {detail[:500]}")
+        validator_name = Path(validator).name
+    else:
+        validate_with_official_sysml_kernel(candidate, timeout_seconds)
+        validator_name = "OMG SysML v2 Pilot Implementation"
     return {
         "requirement_id": args.requirement_id,
         "candidate_sysml": candidate,
-        "validator": Path(validator).name,
+        "validator": validator_name,
         "validator_result": "passed",
         "applied_to_model": False,
     }
@@ -219,22 +310,22 @@ def propose_requirement(arguments: BaseModel, timeout_seconds: float) -> dict[st
 
 TOOLS = {
     "list_available_items": ToolDefinition(
-        "List known elevator parts or requirement IDs.",
+        "List available generic SysML v2 example packages, part definitions, requirement definitions, or action definitions.",
         ListAvailableItemsArgs,
         list_available_items,
     ),
     "get_metadata": ToolDefinition(
-        "Read deterministic metadata for a known part or requirement.",
+        "Read deterministic metadata for a known SysML v2 example model element.",
         GetMetadataArgs,
         get_metadata,
     ),
     "check_condition": ToolDefinition(
-        "Check a supported condition for a known elevator part.",
+        "Check whether a known SysML v2 element exists, has documentation, or is a definition.",
         CheckConditionArgs,
         check_condition,
     ),
     "propose_requirement": ToolDefinition(
-        "Propose a typed SysML requirement candidate and validate it with the configured SysML compiler/validator; the proposal is never applied automatically.",
+        "Propose a typed SysML requirement candidate and validate it with the configured validator (the official OMG SysML v2 Pilot kernel by default); the proposal is never applied automatically.",
         ProposeRequirementArgs,
         propose_requirement,
     ),
@@ -565,6 +656,15 @@ def format_console_result(result: AgentResult) -> str:
 
 
 if __name__ == "__main__":
+    print("=== SysML v2 Model Agent ===")
+    print("I can help you:")
+    print("- List generic SysML v2 model elements by kind.")
+    print("- Inspect a package, part, requirement, or action definition.")
+    print("- Check whether an element exists, has documentation, or is a definition.")
+    print("- Propose a SysML requirement for validation and human review.")
+    print("Example: What kind of element is ExampleRequirement?")
+    print("Requirement proposals are never applied automatically.")
+    print()
     try:
         request = input("What should I inspect? ").strip()
     except (KeyboardInterrupt, EOFError):

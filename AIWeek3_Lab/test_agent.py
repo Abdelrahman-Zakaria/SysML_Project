@@ -17,13 +17,13 @@ from app import (
 
 def test_success_uses_deterministic_evidence():
     result = run_agent(
-        "What is the controller?",
+        "What is ExamplePart?",
         lambda history, timeout: ToolCall(
-            tool_name="get_metadata", arguments={"item_id": "controller"}
+            tool_name="get_metadata", arguments={"item_id": "ExamplePart"}
         ),
     )
     assert result.status == "success"
-    assert result.observations[0].evidence["kind"] == "part"
+    assert result.observations[0].evidence["kind"] == "part_definition"
 
 
 def test_unknown_tool_is_rejected():
@@ -34,7 +34,7 @@ def test_unknown_tool_is_rejected():
 
 def test_invalid_arguments_are_rejected():
     observation = execute_tool(
-        ToolCall(tool_name="check_condition", arguments={"item_id": "controller"})
+        ToolCall(tool_name="check_condition", arguments={"item_id": "ExamplePart"})
     )
     assert observation.success is False
     assert observation.error_code == "invalid_arguments"
@@ -42,9 +42,9 @@ def test_invalid_arguments_are_rejected():
 
 def test_missing_item_returns_no_evidence():
     result = run_agent(
-        "Inspect a reactor",
+        "Inspect UnknownElement",
         lambda history, timeout: ToolCall(
-            tool_name="get_metadata", arguments={"item_id": "reactor"}
+            tool_name="get_metadata", arguments={"item_id": "UnknownElement"}
         ),
     )
     assert result.status == "no_evidence"
@@ -52,7 +52,7 @@ def test_missing_item_returns_no_evidence():
 
 def test_model_cannot_turn_unsupported_data_into_success():
     result = run_agent(
-        "Claim the elevator is certified",
+        "Claim the model is certified",
         lambda history, timeout: {
             "tool_name": "get_metadata", "arguments": {"item_id": "certified"}
         },
@@ -72,12 +72,12 @@ def test_call_limit_is_enforced():
 
 
 def test_malformed_model_decision_is_rejected():
-    result = run_agent("Inspect controller", lambda history, timeout: {"tool_name": 7})
+    result = run_agent("Inspect ExamplePart", lambda history, timeout: {"tool_name": 7})
     assert result.status == "rejected"
 
 
 def test_provider_failure_is_reported():
-    result = run_agent("Inspect controller", lambda history, timeout: (_ for _ in ()).throw(OSError("offline")))
+    result = run_agent("Inspect ExamplePart", lambda history, timeout: (_ for _ in ()).throw(OSError("offline")))
     assert result.status == "tool_error"
     assert "offline" in result.message
 
@@ -86,7 +86,7 @@ def test_missing_model_configuration_is_reported(monkeypatch):
     for setting in ("BASE_URL", "API_KEY", "MODEL_ID"):
         monkeypatch.delenv(setting, raising=False)
     result = run_agent(
-        "Inspect controller",
+        "Inspect ExamplePart",
         lambda history, timeout: get_model_decision(history, timeout),
     )
     assert result.status == "tool_error"
@@ -98,9 +98,9 @@ def test_slow_provider_cannot_exceed_agent_budget_silently():
 
     def slow_provider(history, timeout):
         time.sleep(0.02)
-        return ToolCall(tool_name="get_metadata", arguments={"item_id": "controller"})
+        return ToolCall(tool_name="get_metadata", arguments={"item_id": "ExamplePart"})
 
-    result = run_agent("Inspect controller", slow_provider, max_runtime_seconds=0.001)
+    result = run_agent("Inspect ExamplePart", slow_provider, max_runtime_seconds=0.001)
     assert result.status == "limit_exceeded"
     assert result.observations == []
 
@@ -110,9 +110,9 @@ def test_provider_receives_remaining_time_budget():
 
     def provider(history, timeout):
         received.append(timeout)
-        return ToolCall(tool_name="get_metadata", arguments={"item_id": "controller"})
+        return ToolCall(tool_name="get_metadata", arguments={"item_id": "ExamplePart"})
 
-    result = run_agent("Inspect controller", provider, max_runtime_seconds=1.0)
+    result = run_agent("Inspect ExamplePart", provider, max_runtime_seconds=1.0)
     assert result.status == "success"
     assert 0 < received[0] <= 1.0
 
@@ -131,7 +131,7 @@ def test_token_usage_is_aggregated_in_result_metadata():
             ),
             ModelDecision(
                 tool_call=ToolCall(
-                    tool_name="get_metadata", arguments={"item_id": "controller"}
+                    tool_name="get_metadata", arguments={"item_id": "ExamplePart"}
                 ),
                 model_id="demo-model",
                 token_usage=TokenUsage(
@@ -140,7 +140,7 @@ def test_token_usage_is_aggregated_in_result_metadata():
             ),
         ]
     )
-    result = run_agent("Inspect controller", lambda history, timeout: next(decisions))
+    result = run_agent("Inspect ExamplePart", lambda history, timeout: next(decisions))
     usage = result.model_dump()["metadata"]["llm_token_usage"]
     assert usage["available"] is True
     assert usage["prompt_tokens"] == 20
@@ -156,7 +156,7 @@ def test_model_response_usage_metadata_is_preserved(monkeypatch):
         choices=[
             SimpleNamespace(
                 message=SimpleNamespace(
-                    content='{"tool_name":"get_metadata","arguments":{"item_id":"controller"}}'
+                    content='{"tool_name":"get_metadata","arguments":{"item_id":"ExamplePart"}}'
                 )
             )
         ],
@@ -189,7 +189,7 @@ def test_tool_exception_is_reported_as_tool_error(monkeypatch):
         ToolDefinition("test failure", GetMetadataArgs, lambda arguments, timeout: (_ for _ in ()).throw(RuntimeError("broken tool"))),
     )
     observation = execute_tool(
-        ToolCall(tool_name="get_metadata", arguments={"item_id": "controller"})
+        ToolCall(tool_name="get_metadata", arguments={"item_id": "ExamplePart"})
     )
     assert observation.success is False
     assert observation.error_code == "tool_error"
@@ -209,7 +209,7 @@ def test_requirement_proposal_is_checked_and_requires_review(monkeypatch):
 
     monkeypatch.setattr("app.subprocess.run", fake_run)
     result = run_agent(
-        "Propose a floor request requirement",
+        "Propose an example SysML requirement",
         lambda history, timeout: ToolCall(
             tool_name="propose_requirement",
             arguments={
@@ -225,8 +225,12 @@ def test_requirement_proposal_is_checked_and_requires_review(monkeypatch):
     assert observed_candidate["timeout"] > 0
 
 
-def test_requirement_proposal_fails_closed_without_validator(monkeypatch):
+def test_requirement_proposal_fails_closed_when_official_kernel_unavailable(monkeypatch):
     monkeypatch.delenv("SYSML_VALIDATOR", raising=False)
+    monkeypatch.setattr(
+        "app.validate_with_official_sysml_kernel",
+        lambda candidate, timeout: (_ for _ in ()).throw(RuntimeError("kernel unavailable")),
+    )
     observation = execute_tool(
         ToolCall(
             tool_name="propose_requirement",
@@ -238,7 +242,7 @@ def test_requirement_proposal_fails_closed_without_validator(monkeypatch):
     )
     assert observation.success is False
     assert observation.error_code == "tool_error"
-    assert "not configured" in observation.error_message
+    assert "kernel unavailable" in observation.error_message
 
 
 def test_rejected_sysml_candidate_is_not_success(monkeypatch):
@@ -280,7 +284,7 @@ def test_cancellation_is_explicit():
     def cancel(history, timeout):
         raise KeyboardInterrupt
 
-    result = run_agent("Inspect controller", cancel)
+    result = run_agent("Inspect ExamplePart", cancel)
     assert result.status == "cancelled"
 
 

@@ -1,9 +1,10 @@
 # AIWeek3 Lab
 
-This lab builds a small, inspectable agent for elevator-model inspection. The
-model proposes a named tool and typed arguments. Python validates both, executes
-only allow-listed tools, and returns observable evidence or an explicit failure.
-Model-generated prose is never accepted as engineering evidence.
+This lab builds a small, inspectable agent for SysML v2 model-element
+inspection. The model proposes a named tool and typed arguments. Python
+validates both, executes only allow-listed tools, and returns observable
+evidence or an explicit failure. Model-generated prose is never accepted as
+engineering evidence.
 
 ## Agent loop
 
@@ -28,21 +29,79 @@ does not estimate them.
 
 ## Tools
 
-- `list_available_items` lists local parts or requirement IDs.
-- `get_metadata` reads deterministic local metadata.
-- `check_condition` evaluates one of the supported local conditions.
-- `propose_requirement` builds a typed SysML v2 requirement candidate and asks
-  the configured validator to check it. A passing candidate is returned as
-  `requires_review`; it is never written into the project model automatically.
+The model may request only these four tools. Python checks each tool name and
+its typed arguments before executing it.
 
-The first three tools use local elevator facts. For proposals, the validator
-must be configured explicitly. `SYSML_VALIDATOR` must point to a local wrapper
-that accepts one `.sysml` file path as its sole argument, invokes the installed
-SysML v2 compiler or official validator, and returns exit code 0 only when the
-candidate passes validation. A nonzero exit code is a rejected tool result. If
-no validator is configured or it cannot run, the proposal fails closed and is
-not presented as validated. The lab does not claim that a lightweight text
-check is equivalent to a SysML compiler.
+| Tool | Arguments | Result |
+| --- | --- | --- |
+| `list_available_items` | `kind`: `all`, `package`, `part_definition`, `requirement_definition`, or `action_definition`; optional `limit` from 1 to 50 | IDs from the local example catalog, up to the limit |
+| `get_metadata` | `item_id`: a known ID such as `ExampleRequirement` | The element's kind, SysML metaclass, description, documentation, and any example statement |
+| `check_condition` | `item_id` and `condition`: `exists`, `has_documentation`, or `is_definition` | A true/false result computed from the local catalog |
+| `propose_requirement` | `requirement_id` from `AIW3-001` to `AIW3-999`, and a one-line `statement` from 10 to 240 characters beginning `The system shall ` | A generated SysML v2 candidate, returned only after validation and marked for human review |
+
+### Example requests
+
+- “List all available model elements.” calls `list_available_items` with
+  `kind=all`.
+- “What kind of element is ExampleRequirement?” calls `get_metadata` with
+  `item_id=ExampleRequirement`.
+- “Does ExamplePackage have documentation?” calls `check_condition` with
+  `condition=has_documentation`.
+- “Propose a requirement that the system shall support a new operating mode.”
+  asks the model to provide a new `AIW3-###` ID and the statement, then calls
+  `propose_requirement`.
+
+The first three tools use a small deterministic catalog of generic SysML v2
+examples stored in `app.py`. This is teaching data: the lab does not load or
+parse arbitrary model files. Requests for items outside the catalog return
+`no_evidence` instead of allowing the model to invent facts.
+
+`propose_requirement` builds a typed candidate in a temporary file and checks
+it with the official OMG SysML v2 Pilot Implementation kernel by default. A
+successful validation returns `requires_review`; it does not edit a project
+model. If validation fails, the tool returns an error and the proposal is not
+reported as valid.
+
+For example, a valid request could produce this candidate:
+
+```sysml
+package AIWeek3Candidate {
+    requirement def <'AIW3-001'> ProposedRequirement {
+        doc /* The system shall support a new operating mode. */
+    }
+}
+```
+
+The proposal ID must match `AIW3-###`. The statement cannot contain line breaks
+or SysML comment delimiters. These checks keep the generated input within the
+small typed operation this lab supports.
+
+`SYSML_VALIDATOR=` should normally be left blank. The app then uses the
+official `sysml` Jupyter kernel installed below. Set `SYSML_VALIDATOR` only to
+override that default with a local wrapper. The wrapper must accept one `.sysml`
+file path as its only argument and return exit code 0 only when the candidate
+passes validation. If the official kernel or custom wrapper cannot run, the
+proposal fails closed.
+
+The kernel is distributed by the [official SysML v2 Pilot Implementation
+project](https://github.com/Systems-Modeling/SysML-v2-Pilot-Implementation).
+
+## Result statuses
+
+- `success`: a deterministic tool returned evidence for the request.
+- `no_evidence`: the requested ID is not in the local example catalog.
+- `rejected`: the tool name or arguments were invalid, or the agent needs the
+  request clarified.
+- `tool_error`: the model provider or a tool failed, including a failed SysML
+  validation.
+- `limit_exceeded`: the call count or run-time limit was reached.
+- `requires_review`: the SysML candidate passed validation and is waiting for a
+  person to review it. The project model remains unchanged.
+- `cancelled`: the user interrupted the run.
+
+Each result also includes observations with the tool name and either evidence
+or a specific error. Token usage is printed separately in a readable section;
+the structured values remain in `metadata.llm_token_usage` for programmatic use.
 
 ## Setup
 
@@ -55,10 +114,27 @@ python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-For live model calls, set `BASE_URL`, `API_KEY`, and `MODEL_ID` in `.env`. Set
-`SYSML_VALIDATOR` to your local validator wrapper to enable requirement
-proposals. Keep `.env` and API keys out of version control. The deterministic
-tests do not need a model API key or an installed SysML validator.
+Set the following values in `.env`:
+
+| Variable | Purpose |
+| --- | --- |
+| `BASE_URL` | OpenAI-compatible chat endpoint URL for model decisions |
+| `API_KEY` | Credential for that model endpoint |
+| `MODEL_ID` | Model name or identifier accepted by the endpoint |
+| `SYSML_VALIDATOR` | Optional custom validator wrapper. Leave blank to use the official kernel. |
+
+The first three settings are needed for live model calls. Requirement
+proposals require Java 21+ and the official SysML kernel. After installing the
+Python requirements and activating the virtual environment, install the latest
+official pilot kernel with:
+
+```powershell
+.\setup_official_sysml_kernel.ps1
+```
+
+The installer downloads the official kernel release and registers it with the
+active Python environment. Keep `.env` and API keys out of version control. The
+deterministic tests do not need a model API key or an installed SysML kernel.
 
 ```powershell
 .\venv\Scripts\python.exe app.py
@@ -67,17 +143,28 @@ tests do not need a model API key or an installed SysML validator.
 Example run (token counts vary by request and provider):
 
 ```text
-What should I inspect? What is the controller?
+=== SysML v2 Model Agent ===
+I can help you:
+- List generic SysML v2 model elements by kind.
+- Inspect a package, part, requirement, or action definition.
+- Check whether an element exists, has documentation, or is a definition.
+- Propose a SysML requirement for official validation and human review.
+Example: What kind of element is ExampleRequirement?
+Proposals use the official kernel and are never applied automatically.
+
+What should I inspect? What kind of element is ExampleRequirement?
 === Agent result ===
 Status: SUCCESS
 The result is supported by deterministic local evidence.
 
 Tool: get_metadata
 Evidence:
-  Item id: controller
-  Kind: part
-  Description: Schedules requests and coordinates elevator movement.
-  Requirement: FR-01
+  Item id: ExampleRequirement
+  Kind: requirement_definition
+  Metaclass: RequirementDefinition
+  Description: A requirement definition in a SysML v2 model.
+  Statement: The system shall satisfy the example requirement.
+  Documentation: Illustrates a requirement definition and its statement.
 
 LLM token usage:
   Model: example-model
@@ -89,7 +176,7 @@ LLM token usage:
 The tests cover successful deterministic inspection, fabricated tool names,
 invalid arguments, missing evidence, fabricated unsupported claims, malformed
 model output, provider and tool exceptions, runtime and call limits, ambiguous
-requests, cancellation, missing validator configuration, validator rejection,
+requests, cancellation, unavailable official kernel, validator rejection,
 token-usage metadata aggregation, and a validated proposal awaiting human
 review.
 
