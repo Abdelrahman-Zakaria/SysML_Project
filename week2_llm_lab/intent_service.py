@@ -1,39 +1,68 @@
 
 """
-Main service that connects the prompt builder,
-LLM client, and Intent validation.
+Main service connecting prompting, inference,
+response validation, and usage metadata.
 """
+
+from time import perf_counter
 
 from models import Intent
 from prompts import build_messages
 from llm_client import generate_response
 from response_handler import parse_and_validate
 
+from metadata import (
+    build_run_metadata,
+    save_run_metadata,
+)
 
-def generate_intent(user_request: str) -> tuple[Intent, object]:
+
+def generate_intent(user_request: str) -> tuple[Intent, object, dict]:
     """
-    Generate an Intent from a user request
-    and validate the LLM response.
+    Generate, validate, and record one intent request.
     """
 
-    # Step 1: Prepare the chat messages.
+    # 1. Prepare chat messages.
     messages = build_messages(user_request)
 
-    # Step 2: Send messages to the LLM.
+    # 2. Measure inference duration.
+    start_time = perf_counter()
     response = generate_response(messages)
+    duration = perf_counter() - start_time
 
-    # Step 3: Check that the response contains a choice.
-    if not response.choices:
-        raise ValueError("The LLM returned no response choices.")
+    # 3. Collect usage and model metadata.
+    metadata = build_run_metadata(response, duration)
 
-    # Step 4: Extract the assistant's response text.
-    raw_content = response.choices[0].message.content
+    try:
+        # 4. Check response choices.
+        if not response.choices:
+            raise ValueError(
+                "The LLM returned no response choices."
+            )
 
-    if not isinstance(raw_content, str) or not raw_content.strip():
-        raise ValueError("The LLM returned empty content.")
+        # 5. Extract generated text.
+        raw_content = response.choices[0].message.content
 
-    # Step 5: Parse JSON and validate it with Pydantic.
-    intent = parse_and_validate(raw_content)
+        if not isinstance(raw_content, str) or not raw_content.strip():
+            raise ValueError(
+                "The LLM returned empty content."
+            )
 
-    # Return both the validated Intent and full response.
-    return intent, response
+        # 6. Parse and validate JSON.
+        intent = parse_and_validate(raw_content)
+
+    except ValueError as exc:
+
+        metadata["validation_status"] = "failed"
+        metadata["validation_error"] = str(exc)
+
+        save_run_metadata(metadata)
+        raise
+
+    # 7. Record successful validation.
+    metadata["validation_status"] = "passed"
+    metadata["validation_error"] = None
+
+    save_run_metadata(metadata)
+
+    return intent, response, metadata
