@@ -114,7 +114,7 @@ def run_agent(user_input):
 
         api_requests += 1
 
-        if response.usage:
+        if getattr(response, "usage", None):
             input_tokens += response.usage.prompt_tokens
             output_tokens += response.usage.completion_tokens
             total_tokens += response.usage.total_tokens
