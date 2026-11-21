@@ -498,14 +498,80 @@ def get_model_decision(
     )
 
 
+def _display_token_count(value: int | None) -> str:
+    return f"{value:,}" if value is not None else "not reported"
+
+
+def format_console_result(result: AgentResult) -> str:
+    lines = ["=== Agent result ===", f"Status: {result.status.replace('_', ' ').upper()}", result.message]
+
+    for observation in result.observations:
+        lines.extend(["", f"Tool: {observation.tool_name}"])
+        if observation.success:
+            if observation.evidence:
+                lines.append("Evidence:")
+                for key, value in observation.evidence.items():
+                    label = key.replace("_", " ").capitalize()
+                    if isinstance(value, bool):
+                        shown_value = "Yes" if value else "No"
+                    elif isinstance(value, list):
+                        shown_value = ", ".join(str(item) for item in value)
+                    elif value is None:
+                        shown_value = "Not available"
+                    else:
+                        shown_value = str(value)
+                    value_lines = shown_value.splitlines() or [""]
+                    lines.append(f"  {label}: {value_lines[0]}")
+                    lines.extend(f"    {part}" for part in value_lines[1:])
+            if observation.requires_review:
+                lines.append("Human review: required")
+        else:
+            lines.append(f"Outcome: {observation.error_code or 'tool_error'}")
+            if observation.error_message:
+                lines.append(f"Details: {observation.error_message}")
+
+    usage = result.metadata.get("llm_token_usage", {})
+    calls = usage.get("calls", [])
+    available_calls = [call for call in calls if call.get("available")]
+    lines.extend(["", "LLM token usage:"])
+    if not available_calls:
+        lines.append("  Token counts were not reported by the provider.")
+    elif len(calls) == 1:
+        call = calls[0]
+        if call.get("model_id"):
+            lines.append(f"  Model: {call['model_id']}")
+        lines.append(
+            "  "
+            f"Prompt: {_display_token_count(call.get('prompt_tokens'))} | "
+            f"Completion: {_display_token_count(call.get('completion_tokens'))} | "
+            f"Total: {_display_token_count(call.get('total_tokens'))} tokens"
+        )
+    else:
+        lines.append(
+            "  Aggregate: "
+            f"Prompt {_display_token_count(usage.get('prompt_tokens'))} | "
+            f"Completion {_display_token_count(usage.get('completion_tokens'))} | "
+            f"Total {_display_token_count(usage.get('total_tokens'))} tokens"
+        )
+        for index, call in enumerate(calls, start=1):
+            model = f" ({call['model_id']})" if call.get("model_id") else ""
+            lines.append(
+                f"  Call {index}{model}: "
+                f"prompt {_display_token_count(call.get('prompt_tokens'))}, "
+                f"completion {_display_token_count(call.get('completion_tokens'))}, "
+                f"total {_display_token_count(call.get('total_tokens'))}"
+            )
+    return "\n".join(lines)
+
+
 if __name__ == "__main__":
     try:
         request = input("What should I inspect? ").strip()
     except (KeyboardInterrupt, EOFError):
-        print(json.dumps(AgentResult(status="cancelled", message="Input was cancelled.").model_dump(), indent=2))
+        print(format_console_result(AgentResult(status="cancelled", message="Input was cancelled.")))
         raise SystemExit(0)
     result = run_agent(
         request,
         lambda history, timeout: get_model_decision(history, timeout),
     )
-    print(json.dumps(result.model_dump(), indent=2))
+    print(format_console_result(result))

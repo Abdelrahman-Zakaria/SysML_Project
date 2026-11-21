@@ -20,11 +20,11 @@ only the remaining time. Provider exceptions and tool exceptions become
 non-success results. Ctrl+C or EOF during input and Ctrl+C during a run are
 reported as cancellation.
 
-The printed result includes a `metadata.llm_token_usage` object. When the
-provider reports usage, it shows aggregate prompt, completion, and total token
-counts plus per-call counts and model IDs. The aggregate counts are summed
-across model calls. If the provider omits usage metadata, `available` is false
-and token counts remain `null`; the lab does not estimate them.
+The result stores token data in `metadata.llm_token_usage`. The console presents
+aggregate prompt, completion, and total counts plus model IDs and per-call
+counts. The aggregate counts are summed across model calls. If the provider
+omits usage metadata, the console says token counts were not reported; the lab
+does not estimate them.
 
 ## Tools
 
@@ -68,42 +68,20 @@ Example run (token counts vary by request and provider):
 
 ```text
 What should I inspect? What is the controller?
-{
-  "status": "success",
-  "observations": [
-    {
-      "tool_name": "get_metadata",
-      "success": true,
-      "evidence": {
-        "item_id": "controller",
-        "kind": "part",
-        "description": "Schedules requests and coordinates elevator movement.",
-        "requirement": "FR-01"
-      },
-      "error_code": null,
-      "error_message": null,
-      "requires_review": false
-    }
-  ],
-  "message": "The result is supported by deterministic local evidence.",
-  "metadata": {
-    "llm_token_usage": {
-      "available": true,
-      "prompt_tokens": 85,
-      "completion_tokens": 13,
-      "total_tokens": 98,
-      "calls": [
-        {
-          "model_id": "example-model",
-          "prompt_tokens": 85,
-          "completion_tokens": 13,
-          "total_tokens": 98,
-          "available": true
-        }
-      ]
-    }
-  }
-}
+=== Agent result ===
+Status: SUCCESS
+The result is supported by deterministic local evidence.
+
+Tool: get_metadata
+Evidence:
+  Item id: controller
+  Kind: part
+  Description: Schedules requests and coordinates elevator movement.
+  Requirement: FR-01
+
+LLM token usage:
+  Model: example-model
+  Prompt: 85 | Completion: 13 | Total: 98 tokens
 ```
 
 ## Rejection-path exercises
