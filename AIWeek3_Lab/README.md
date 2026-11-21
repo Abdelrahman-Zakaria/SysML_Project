@@ -20,6 +20,12 @@ only the remaining time. Provider exceptions and tool exceptions become
 non-success results. Ctrl+C or EOF during input and Ctrl+C during a run are
 reported as cancellation.
 
+The printed result includes a `metadata.llm_token_usage` object. When the
+provider reports usage, it shows aggregate prompt, completion, and total token
+counts plus per-call counts and model IDs. The aggregate counts are summed
+across model calls. If the provider omits usage metadata, `available` is false
+and token counts remain `null`; the lab does not estimate them.
+
 ## Tools
 
 - `list_available_items` lists local parts or requirement IDs.
@@ -58,13 +64,56 @@ tests do not need a model API key or an installed SysML validator.
 .\venv\Scripts\python.exe app.py
 ```
 
+Example run (token counts vary by request and provider):
+
+```text
+What should I inspect? What is the controller?
+{
+  "status": "success",
+  "observations": [
+    {
+      "tool_name": "get_metadata",
+      "success": true,
+      "evidence": {
+        "item_id": "controller",
+        "kind": "part",
+        "description": "Schedules requests and coordinates elevator movement.",
+        "requirement": "FR-01"
+      },
+      "error_code": null,
+      "error_message": null,
+      "requires_review": false
+    }
+  ],
+  "message": "The result is supported by deterministic local evidence.",
+  "metadata": {
+    "llm_token_usage": {
+      "available": true,
+      "prompt_tokens": 85,
+      "completion_tokens": 13,
+      "total_tokens": 98,
+      "calls": [
+        {
+          "model_id": "example-model",
+          "prompt_tokens": 85,
+          "completion_tokens": 13,
+          "total_tokens": 98,
+          "available": true
+        }
+      ]
+    }
+  }
+}
+```
+
 ## Rejection-path exercises
 
 The tests cover successful deterministic inspection, fabricated tool names,
 invalid arguments, missing evidence, fabricated unsupported claims, malformed
 model output, provider and tool exceptions, runtime and call limits, ambiguous
 requests, cancellation, missing validator configuration, validator rejection,
-and a validated proposal awaiting human review.
+token-usage metadata aggregation, and a validated proposal awaiting human
+review.
 
 Run the tests with:
 

@@ -3,6 +3,8 @@ import subprocess
 from app import (
     AgentResult,
     GetMetadataArgs,
+    ModelDecision,
+    TokenUsage,
     ToolCall,
     ToolDefinition,
     TOOLS,
@@ -113,6 +115,71 @@ def test_provider_receives_remaining_time_budget():
     result = run_agent("Inspect controller", provider, max_runtime_seconds=1.0)
     assert result.status == "success"
     assert 0 < received[0] <= 1.0
+
+
+def test_token_usage_is_aggregated_in_result_metadata():
+    decisions = iter(
+        [
+            ModelDecision(
+                tool_call=ToolCall(
+                    tool_name="list_available_items", arguments={}, final=False
+                ),
+                model_id="demo-model",
+                token_usage=TokenUsage(
+                    prompt_tokens=12, completion_tokens=3, total_tokens=15
+                ),
+            ),
+            ModelDecision(
+                tool_call=ToolCall(
+                    tool_name="get_metadata", arguments={"item_id": "controller"}
+                ),
+                model_id="demo-model",
+                token_usage=TokenUsage(
+                    prompt_tokens=8, completion_tokens=2, total_tokens=10
+                ),
+            ),
+        ]
+    )
+    result = run_agent("Inspect controller", lambda history, timeout: next(decisions))
+    usage = result.model_dump()["metadata"]["llm_token_usage"]
+    assert usage["available"] is True
+    assert usage["prompt_tokens"] == 20
+    assert usage["completion_tokens"] == 5
+    assert usage["total_tokens"] == 25
+    assert len(usage["calls"]) == 2
+
+
+def test_model_response_usage_metadata_is_preserved(monkeypatch):
+    from types import SimpleNamespace
+
+    response = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(
+                    content='{"tool_name":"get_metadata","arguments":{"item_id":"controller"}}'
+                )
+            )
+        ],
+        model="demo-model",
+        usage=SimpleNamespace(prompt_tokens=17, completion_tokens=4, total_tokens=21),
+    )
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.timeout = kwargs["timeout"]
+
+        def chat_completion(self, **kwargs):
+            return response
+
+    monkeypatch.setenv("BASE_URL", "https://example.invalid/v1")
+    monkeypatch.setenv("API_KEY", "test-key")
+    monkeypatch.setenv("MODEL_ID", "configured-model")
+    monkeypatch.setattr("app.InferenceClient", FakeClient)
+    decision = get_model_decision([{"role": "user", "content": "inspect"}], 0.5)
+    assert decision.model_id == "demo-model"
+    assert decision.token_usage.prompt_tokens == 17
+    assert decision.token_usage.completion_tokens == 4
+    assert decision.token_usage.total_tokens == 21
 
 
 def test_tool_exception_is_reported_as_tool_error(monkeypatch):

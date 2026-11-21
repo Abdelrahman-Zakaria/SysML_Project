@@ -86,6 +86,18 @@ class ToolCall(BaseModel):
     clarification_question: str | None = Field(default=None, max_length=240)
 
 
+class TokenUsage(BaseModel):
+    prompt_tokens: int | None = Field(default=None, ge=0)
+    completion_tokens: int | None = Field(default=None, ge=0)
+    total_tokens: int | None = Field(default=None, ge=0)
+
+
+class ModelDecision(BaseModel):
+    tool_call: ToolCall
+    model_id: str | None = None
+    token_usage: TokenUsage = Field(default_factory=TokenUsage)
+
+
 class ModelOutputError(ValueError):
     """The provider returned an empty or structurally invalid decision."""
 
@@ -106,6 +118,17 @@ class AgentResult(BaseModel):
     ]
     observations: list[ToolObservation] = Field(default_factory=list)
     message: str
+    metadata: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "llm_token_usage": {
+                "available": False,
+                "prompt_tokens": None,
+                "completion_tokens": None,
+                "total_tokens": None,
+                "calls": [],
+            }
+        }
+    )
 
 
 @dataclass(frozen=True)
@@ -262,6 +285,30 @@ def execute_tool(call: ToolCall, timeout_seconds: float = MAX_RUNTIME_SECONDS) -
 DecisionProvider = Callable[[list[dict[str, Any]], float], Any]
 
 
+def record_token_usage(target: dict[str, Any], decision: ModelDecision) -> None:
+    usage = decision.token_usage
+    call_usage = {
+        "model_id": decision.model_id,
+        "prompt_tokens": usage.prompt_tokens,
+        "completion_tokens": usage.completion_tokens,
+        "total_tokens": usage.total_tokens,
+        "available": any(
+            value is not None
+            for value in (
+                usage.prompt_tokens,
+                usage.completion_tokens,
+                usage.total_tokens,
+            )
+        ),
+    }
+    target["calls"].append(call_usage)
+    for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        value = call_usage[key]
+        if value is not None:
+            target[key] = (target[key] or 0) + value
+    target["available"] = target["available"] or call_usage["available"]
+
+
 def run_agent(
     request: str,
     decision_provider: DecisionProvider,
@@ -269,10 +316,26 @@ def run_agent(
     max_calls: int = MAX_CALLS,
     max_runtime_seconds: float = MAX_RUNTIME_SECONDS,
 ) -> AgentResult:
+    token_usage: dict[str, Any] = {
+        "available": False,
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "total_tokens": None,
+        "calls": [],
+    }
+
+    def result(status: str, message: str, result_observations=None) -> AgentResult:
+        return AgentResult(
+            status=status,
+            observations=result_observations or [],
+            message=message,
+            metadata={"llm_token_usage": token_usage},
+        )
+
     if not request.strip():
-        return AgentResult(status="rejected", message="The request cannot be empty.")
+        return result("rejected", "The request cannot be empty.")
     if max_calls < 1 or max_runtime_seconds <= 0:
-        return AgentResult(status="rejected", message="Agent limits must be positive.")
+        return result("rejected", "Agent limits must be positive.")
 
     started = time.monotonic()
     history: list[dict[str, Any]] = [{"role": "user", "content": request}]
@@ -281,89 +344,81 @@ def run_agent(
     for _ in range(max_calls):
         remaining = max_runtime_seconds - (time.monotonic() - started)
         if remaining <= 0:
-            return AgentResult(
-                status="limit_exceeded", observations=observations,
-                message="The agent runtime limit was reached.",
-            )
+            return result("limit_exceeded", "The agent runtime limit was reached.", observations)
         try:
             proposed = decision_provider(history, remaining)
         except KeyboardInterrupt:
-            return AgentResult(
-                status="cancelled", observations=observations,
-                message="The agent run was cancelled.",
-            )
+            return result("cancelled", "The agent run was cancelled.", observations)
         except ModelOutputError as error:
-            return AgentResult(
-                status="rejected", observations=observations,
-                message=f"The model decision was rejected: {error}",
-            )
+            return result("rejected", f"The model decision was rejected: {error}", observations)
         except Exception as error:
             elapsed = time.monotonic() - started
             status = "limit_exceeded" if elapsed >= max_runtime_seconds else "tool_error"
-            return AgentResult(
-                status=status, observations=observations,
-                message=f"Model decision failed: {type(error).__name__}: {error}",
+            return result(
+                status,
+                f"Model decision failed: {type(error).__name__}: {error}",
+                observations,
             )
 
+        if isinstance(proposed, ModelDecision):
+            record_token_usage(token_usage, proposed)
+            proposed = proposed.tool_call
+
         if time.monotonic() - started >= max_runtime_seconds:
-            return AgentResult(
-                status="limit_exceeded", observations=observations,
-                message="The agent runtime limit was reached during model decision.",
+            return result(
+                "limit_exceeded",
+                "The agent runtime limit was reached during model decision.",
+                observations,
             )
         try:
             call = ToolCall.model_validate(proposed)
         except (ValidationError, TypeError, ValueError) as error:
-            return AgentResult(
-                status="rejected", observations=observations,
-                message=f"The model decision was rejected: {error}",
-            )
+            return result("rejected", f"The model decision was rejected: {error}", observations)
 
         if call.needs_clarification:
-            return AgentResult(
-                status="rejected", observations=observations,
-                message=call.clarification_question or "Please clarify the request.",
+            return result(
+                "rejected",
+                call.clarification_question or "Please clarify the request.",
+                observations,
             )
 
         remaining = max_runtime_seconds - (time.monotonic() - started)
         try:
             observation = execute_tool(call, max(0.0, remaining))
         except KeyboardInterrupt:
-            return AgentResult(
-                status="cancelled", observations=observations,
-                message="The agent run was cancelled during tool execution.",
-            )
+            return result("cancelled", "The agent run was cancelled during tool execution.", observations)
         observations.append(observation)
         history.append({"role": "tool", "content": observation.model_dump()})
         if time.monotonic() - started >= max_runtime_seconds:
-            return AgentResult(
-                status="limit_exceeded", observations=observations,
-                message="The agent runtime limit was reached during tool execution.",
+            return result(
+                "limit_exceeded",
+                "The agent runtime limit was reached during tool execution.",
+                observations,
             )
         if not observation.success:
             status = "no_evidence" if observation.error_code == "no_evidence" else (
                 "rejected" if observation.error_code in {"unknown_tool", "invalid_arguments"}
                 else "tool_error"
             )
-            return AgentResult(
-                status=status,
-                observations=observations,
-                message=observation.error_message or "Tool execution failed.",
+            return result(
+                status,
+                observation.error_message or "Tool execution failed.",
+                observations,
             )
         if call.final:
             if observation.requires_review:
-                return AgentResult(
-                    status="requires_review", observations=observations,
-                    message="The candidate passed validation and is awaiting human review; it was not applied.",
+                return result(
+                    "requires_review",
+                    "The candidate passed validation and is awaiting human review; it was not applied.",
+                    observations,
                 )
-            return AgentResult(
-                status="success", observations=observations,
-                message="The result is supported by deterministic local evidence.",
+            return result(
+                "success",
+                "The result is supported by deterministic local evidence.",
+                observations,
             )
 
-    return AgentResult(
-        status="limit_exceeded", observations=observations,
-        message="The maximum number of tool calls was reached.",
-    )
+    return result("limit_exceeded", "The maximum number of tool calls was reached.", observations)
 
 
 def tool_catalog_for_model() -> list[dict[str, Any]]:
@@ -377,10 +432,20 @@ def tool_catalog_for_model() -> list[dict[str, Any]]:
     ]
 
 
+def _reported_token_count(usage: Any, field: str) -> int | None:
+    if isinstance(usage, dict):
+        value = usage.get(field)
+    else:
+        value = getattr(usage, field, None)
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    return None
+
+
 def get_model_decision(
     history: list[dict[str, Any]],
     timeout_seconds: float,
-) -> ToolCall:
+) -> ModelDecision:
     base_url = os.getenv("BASE_URL")
     api_key = os.getenv("API_KEY")
     model_id = os.getenv("MODEL_ID")
@@ -413,9 +478,24 @@ def get_model_decision(
     if not isinstance(content, str) or not content.strip():
         raise ModelOutputError("The model returned an empty decision.")
     try:
-        return ToolCall.model_validate_json(content)
+        tool_call = ToolCall.model_validate_json(content)
     except ValidationError as error:
         raise ModelOutputError(f"The model returned an invalid decision: {error}") from error
+    usage = getattr(response, "usage", None)
+    prompt_tokens = _reported_token_count(usage, "prompt_tokens")
+    completion_tokens = _reported_token_count(usage, "completion_tokens")
+    total_tokens = _reported_token_count(usage, "total_tokens")
+    if total_tokens is None and prompt_tokens is not None and completion_tokens is not None:
+        total_tokens = prompt_tokens + completion_tokens
+    return ModelDecision(
+        tool_call=tool_call,
+        model_id=getattr(response, "model", model_id),
+        token_usage=TokenUsage(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+        ),
+    )
 
 
 if __name__ == "__main__":
